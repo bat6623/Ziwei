@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { BirthInput, Gender } from '../types/ziwei';
 import { Calendar, User, Clock, Sparkles, X, CheckCircle2 } from 'lucide-react';
+import { LunarMonth } from 'lunar-javascript';
 
 interface InputModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
   const [day, setDay] = useState<number>(now.getDate());
   const [hour, setHour] = useState<number>(now.getHours());
   const [minute, setMinute] = useState<number>(now.getMinutes());
+  const [error, setError] = useState<string>('');
 
   if (!isOpen) return null;
 
@@ -50,10 +52,11 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
   // 快選日期 (HTML date picker)
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.value) {
-      const selected = new Date(e.target.value);
-      setYear(selected.getFullYear());
-      setMonth(selected.getMonth() + 1);
-      setDay(selected.getDate());
+      // 直接拆字串，避免 new Date('YYYY-MM-DD') 以 UTC 解析造成西半球時區差一天
+      const [y, m, d] = e.target.value.split('-').map(Number);
+      setYear(y);
+      setMonth(m);
+      setDay(d);
     }
   };
 
@@ -82,8 +85,27 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
 
   const currentZodiac = getCurrentZodiacHourName();
 
+  // 檢查日期時間是否真的存在（例如國曆 2/30、農曆小月的三十日）
+  const validate = (): string => {
+    if (![year, month, day, hour, minute].every(Number.isInteger)) return '請填寫完整的日期與時間';
+    if (year < 1900 || year > 2100) return '年份請輸入 1900 到 2100 之間';
+    if (month < 1 || month > 12) return '月份請輸入 1 到 12';
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return '時間格式不正確';
+    if (isLunar) {
+      const dayCount = LunarMonth.fromYm(year, month)?.getDayCount() ?? 30;
+      if (day < 1 || day > dayCount) return `農曆 ${year} 年 ${month} 月只有 ${dayCount} 天`;
+    } else {
+      const d = new Date(year, month - 1, day);
+      if (day < 1 || d.getMonth() !== month - 1) return `國曆 ${year} 年 ${month} 月沒有 ${day} 日`;
+    }
+    return '';
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const msg = validate();
+    setError(msg);
+    if (msg) return;
     onSubmit({
       name: name.trim() || '未命名',
       gender,
@@ -144,8 +166,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
-                placeholder="請輸入姓名 (如：張三)"
-                required
+                placeholder="選填，留空會顯示「未命名」"
               />
             </div>
             <div>
@@ -212,8 +233,8 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
               <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-amber-600" /> 出生年月日
               </label>
-              {/* 原生日曆快選 */}
-              <div className="flex items-center gap-1">
+              {/* 原生日曆快選 (國曆日曆，農曆模式不適用) */}
+              {!isLunar && <div className="flex items-center gap-1">
                 <span className="text-[11px] text-slate-400">日曆點選:</span>
                 <input
                   type="date"
@@ -221,7 +242,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                   onChange={handleDateChange}
                   className="text-xs bg-slate-100 border border-slate-300 rounded px-2 py-0.5 text-slate-700 cursor-pointer focus:outline-none"
                 />
-              </div>
+              </div>}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -232,7 +253,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
                   min={1900}
-                  max={2050}
+                  max={2100}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-bold text-center focus:outline-none focus:border-amber-500"
                   required
                 />
@@ -333,6 +354,9 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
 
           {/* 排盤提交按鈕 */}
           <div className="pt-3 border-t border-slate-200">
+            {error && (
+              <p role="alert" className="mb-2 text-xs font-bold text-rose-600 text-center">{error}</p>
+            )}
             <button
               type="submit"
               className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black py-3 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 text-base tracking-widest cursor-pointer"

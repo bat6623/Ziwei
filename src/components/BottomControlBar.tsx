@@ -91,7 +91,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 className="w-full py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl font-bold text-xs flex items-center justify-between transition cursor-pointer"
               >
                 <span className="flex items-center gap-2">
-                  <RefreshCw className="w-4 h-4 text-rose-600" /> 清除快取並重置
+                  <RefreshCw className="w-4 h-4 text-rose-600" /> 重置為此刻時間
                 </span>
                 <span className="text-[10px] text-rose-500">重置</span>
               </button>

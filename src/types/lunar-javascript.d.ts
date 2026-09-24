@@ -8,6 +8,10 @@ declare module 'lunar-javascript' {
     getMinute(): number;
     getLunar(): Lunar;
   }
+  export class LunarMonth {
+    static fromYm(year: number, month: number): LunarMonth | null;
+    getDayCount(): number;
+  }
   export class Lunar {
     static fromYmdHms(year: number, month: number, day: number, hour: number, minute: number, second: number): Lunar;
     getSolar(): Solar;
@@ -30,6 +34,16 @@ declare module 'lunar-javascript' {
       getMonth(): string;
       getDay(): string;
       getTime(): string;
+      getYun(gender: number): {
+        getStartYear(): number;
+        getStartMonth(): number;
+        getStartDay(): number;
+        getDaYun(): {
+          getGanZhi(): string;
+          getStartAge(): number;
+          getStartYear(): number;
+        }[];
+      };
     };
   }
 }

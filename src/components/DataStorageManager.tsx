@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { ZiweiChartData } from '../types/ziwei';
-import { Save, Database, Image as ImageIcon, Trash2, RefreshCw, X, Download, Share2 } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import { Save, Database, Image as ImageIcon, Trash2, X, Download, Share2 } from 'lucide-react';
+import html2canvas from 'html2canvas-pro';
 
 interface DataStorageManagerProps {
   currentChart: ZiweiChartData;
@@ -10,20 +10,17 @@ interface DataStorageManagerProps {
 }
 
 export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentChart, onLoadChart, onClearCache }) => {
-  const [savedCharts, setSavedCharts] = useState<ZiweiChartData[]>([]);
-  const [isExportingImage, setIsExportingImage] = useState<boolean>(false);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [savedCharts, setSavedCharts] = useState<ZiweiChartData[]>(() => {
     try {
       const records = localStorage.getItem('ziwei_saved_charts');
-      if (records) {
-        setSavedCharts(JSON.parse(records));
-      }
+      return records ? JSON.parse(records) : [];
     } catch (e) {
       console.error('Failed to load saved charts', e);
+      return [];
     }
-  }, []);
+  });
+  const [isExportingImage, setIsExportingImage] = useState<boolean>(false);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const handleSaveToLocalStorage = () => {
     const updated = [currentChart, ...savedCharts.filter((c) => c.id !== currentChart.id)];
@@ -39,20 +36,16 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
   };
 
   const handleClearAllCache = async () => {
-    if (window.confirm('確定要清除所有本機快取與歷史儲存紀錄嗎？')) {
+    if (window.confirm('確定要刪除所有已儲存的命盤嗎？刪除後無法復原。')) {
       try {
-        localStorage.clear();
-        sessionStorage.clear();
-        if ('caches' in window) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((key) => caches.delete(key)));
-        }
+        // 只清本工具自己的紀錄；同網域 (github.io) 的其他網站資料不能動
+        localStorage.removeItem('ziwei_saved_charts');
         setSavedCharts([]);
         if (onClearCache) onClearCache();
-        alert('已成功清除所有本機快取與歷史紀錄！');
+        alert('已刪除所有已儲存的命盤');
       } catch (e) {
         console.error('Clear cache failed', e);
-        alert('快取清除完畢！');
+        alert('清除失敗，請重新整理網頁後再試一次');
       }
     }
   };
@@ -62,7 +55,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
     setIsExportingImage(true);
     try {
       // 優先尋找 4x4 Grid 命盤區塊
-      const gridEl = document.querySelector('[ref-container="ziwei-grid"]') || document.querySelector('.max-w-5xl') as HTMLElement;
+      const gridEl = document.querySelector('[data-export="ziwei-grid"]') as HTMLElement | null;
       if (!gridEl) {
         alert('未找到命盤區塊，請稍後重試');
         return;
@@ -106,7 +99,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
       console.error('Image export failed, trying secondary fallback method', e);
       // 二級 Fallback 容錯處理：全 DOM 備用拍攝
       try {
-        const fallbackTarget = document.querySelector('.grid-cols-4')?.parentElement as HTMLElement;
+        const fallbackTarget = document.querySelector('[data-export="ziwei-grid"]') as HTMLElement | null;
         if (fallbackTarget) {
           const fallbackCanvas = await html2canvas(fallbackTarget, {
             backgroundColor: '#ffffff',
@@ -118,6 +111,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
           alert('圖片繪製失敗，請重新載入網頁後重試');
         }
       } catch (fallbackErr) {
+        console.error('Image export fallback failed', fallbackErr);
         alert('圖片繪製失敗，請檢查瀏覽器設定');
       }
     } finally {
@@ -143,6 +137,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            id="export-image-btn"
             onClick={handleExportImage}
             disabled={isExportingImage}
             className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition shadow-2xs disabled:opacity-50 cursor-pointer"
@@ -160,9 +155,9 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
           <button
             onClick={handleClearAllCache}
             className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition cursor-pointer"
-            title="清除所有本機快取與歷史紀錄"
+            title="刪除這台裝置上所有已儲存的命盤"
           >
-            <RefreshCw className="w-4 h-4 text-rose-600" /> 清除快取
+            <Trash2 className="w-4 h-4 text-rose-600" /> 清除已存紀錄
           </button>
         </div>
       </div>
@@ -197,7 +192,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
 
       {/* 手機相冊儲存與圖片預覽 Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-900/80 backdrop-blur-xs animate-fade-in overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
             <div className="p-3 sm:p-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex justify-between items-center">
               <div className="flex items-center gap-2 font-bold font-serif text-sm sm:text-base">

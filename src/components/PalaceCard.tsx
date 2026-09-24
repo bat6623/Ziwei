@@ -60,7 +60,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
     <div
       onClick={() => onSelect(palace)}
       data-palace-index={palace.index}
-      className={`relative flex flex-col justify-between p-2 border rounded-lg transition-all duration-200 cursor-pointer select-none overflow-hidden min-h-[160px] sm:min-h-[190px] ${
+      className={`relative flex flex-col justify-between p-1 sm:p-2 border rounded-lg transition-all duration-200 cursor-pointer select-none overflow-hidden min-h-[150px] sm:min-h-[190px] ${
         isSelected
           ? 'bg-amber-50/90 border-2 border-amber-500 shadow-md z-20 scale-[1.01]'
           : isSanFang
@@ -70,7 +70,8 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
     >
       {/* 頂部：方位、來因宮印章與宮名 */}
       <div className="flex justify-between items-start text-[11px] border-b border-slate-100 pb-1">
-        <div className="flex flex-col text-slate-500">
+        <span className="sm:hidden whitespace-nowrap font-bold text-slate-500 font-mono text-[10px] leading-5">{palace.stem}{palace.branch}</span>
+        <div className="hidden sm:flex flex-col text-slate-500">
           <div className="flex items-center gap-1">
             {/* 方位 */}
             <span className="text-[9px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-200 px-1 py-0.2 rounded">
@@ -81,19 +82,19 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
         </div>
         
         {/* 宮名、身宮與來因刻印章 (圖 1 & 2) */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1">
           {palace.isLaiYinPalace && (
             <span className="border-2 border-rose-600 text-rose-600 font-extrabold text-[8.5px] px-0.5 py-0.2 rounded bg-rose-50/70 shadow-2xs leading-none">
-              來因
+              <span className="sm:hidden">因</span><span className="hidden sm:inline">來因</span>
             </span>
           )}
           {palace.isBodyPalace && (
-            <span className="bg-rose-100 text-rose-700 text-[10px] font-bold px-1 py-0.2 rounded border border-rose-300">
-              身宮
+            <span className="whitespace-nowrap bg-rose-100 text-rose-700 text-[10px] font-bold px-0.5 sm:px-1 py-0.2 rounded border border-rose-300">
+              身<span className="hidden sm:inline">宮</span>
             </span>
           )}
           <span
-            className={`font-black tracking-widest px-2 py-0.5 rounded text-xs ${
+            className={`font-black tracking-wide sm:tracking-widest whitespace-nowrap px-1 sm:px-2 py-0.5 rounded text-[11px] sm:text-xs ${
               palace.name === '命宮'
                 ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-xs font-bold'
                 : 'text-slate-800 bg-slate-100 border border-slate-200'
@@ -105,13 +106,13 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
       </div>
 
       {/* 中間星曜區 (主星 / 六吉六凶 / 乙級星) */}
-      <div className="grid grid-cols-2 gap-1 my-1 flex-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 my-1 flex-1">
         {/* 左欄：甲級主星 */}
-        <div className="flex flex-col gap-0.5 border-r border-slate-100 pr-1">
+        <div className="flex flex-col gap-0.5 sm:border-r border-slate-100 sm:pr-1">
           {palace.mainStars.map((star) => (
-            <div key={star.id} className="flex items-center justify-between text-xs sm:text-sm font-black tracking-tight">
+            <div key={star.id} className="flex items-start justify-between gap-0.5 text-[12px] sm:text-sm font-black tracking-tight">
               <span className="text-purple-900 flex items-center flex-wrap gap-0.5">
-                {star.name}
+                <span className="whitespace-nowrap">{star.name}</span>
                 {getMutagenBadge(star.mutagen)}
                 {getSelfMutagenBadge(star.selfMutagen)}
                 {/* 動態大限/流年四化 */}
@@ -139,11 +140,11 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
         </div>
 
         {/* 右欄：吉星 + 乙級雜曜 */}
-        <div className="flex flex-col gap-1 text-[10.5px] pl-1">
+        <div className="flex flex-col gap-1 text-[10.5px] sm:pl-1">
           {/* 吉星 (藍色) */}
           <div className="flex flex-wrap gap-x-0.5 gap-y-0.5">
             {palace.luckyStars.map((star) => (
-              <span key={star.id} className="text-sky-700 font-bold inline-flex items-center gap-0.5">
+              <span key={star.id} className="text-sky-700 font-bold inline-flex items-center gap-0.5 whitespace-nowrap">
                 {star.name}
                 {getMutagenBadge(star.mutagen)}
                 {getSelfMutagenBadge(star.selfMutagen)}
@@ -162,10 +163,20 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
               </span>
             ))}
           </div>
+          {/* 六煞星 (深灰色) */}
+          {palace.badStars.length > 0 && (
+            <div className="flex flex-wrap gap-x-0.5 gap-y-0.5">
+              {palace.badStars.map((star) => (
+                <span key={star.id} className="text-slate-700 font-bold whitespace-nowrap">
+                  {star.name}
+                </span>
+              ))}
+            </div>
+          )}
           {/* 乙級雜曜 (玫瑰/橘色) */}
           <div className="flex flex-wrap gap-x-1 gap-y-0.5 text-[9.5px]">
             {palace.minorStars.map((star) => (
-              <span key={star.id} className="text-rose-700 font-semibold bg-rose-50/60 px-0.5 rounded">
+              <span key={star.id} className="text-rose-700 font-semibold bg-rose-50/60 px-0.5 rounded whitespace-nowrap">
                 {star.name}
               </span>
             ))}
@@ -175,7 +186,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
 
       {/* 流年與小限歲數細字 (圖 2) */}
       {palace.flowYearsList && palace.flowYearsList.length > 0 && (
-        <div className="text-[8.5px] text-slate-400 font-mono my-0.5 leading-none flex justify-between px-0.5">
+        <div className="hidden sm:flex text-[8.5px] text-slate-400 font-mono my-0.5 leading-none justify-between px-0.5">
           <span>流年: {palace.flowYearsList.slice(0, 4).join(',')}</span>
           <span>小限: {palace.smallLimitYears.slice(0, 4).join(',')}</span>
         </div>
@@ -194,7 +205,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
           ) : (
             <>
               {/* 大限與流年宮位簡稱 (如 年命 大命) */}
-              <div className="flex items-center gap-1 text-[9px] font-bold">
+              <div className="flex items-center gap-0.5 sm:gap-1 text-[9px] font-bold">
                 <span
                   className={`px-1 py-0.2 rounded ${
                     palace.isCurrentFlowYearPalace
@@ -222,10 +233,10 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
         </div>
 
         <div className="flex items-center gap-1">
-          <span className="text-[9.5px] text-slate-500 font-serif">
+          <span className="hidden sm:inline text-[9.5px] text-slate-500 font-serif">
             {palace.lunarMonthName}
           </span>
-          <span className="font-bold text-slate-800 font-mono text-xs bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
+          <span className="hidden sm:inline font-bold text-slate-800 font-mono text-xs bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
             {palace.stem}{palace.branch}
           </span>
         </div>

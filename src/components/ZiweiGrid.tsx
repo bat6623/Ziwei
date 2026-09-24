@@ -34,7 +34,15 @@ const STEM_FLYING_MUTAGENS: Record<HeavenlyStem, Record<Mutagen, string>> = {
 };
 
 export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect }) => {
-  const [selectedPalace, setSelectedPalace] = useState<PalaceData | null>(null);
+  const [selectedRaw, setSelectedPalace] = useState<PalaceData | null>(null);
+  const [prevChartId, setPrevChartId] = useState<string>(data.id);
+  // 換了一張新命盤時，清掉上一張的選取狀態
+  if (prevChartId !== data.id) {
+    setPrevChartId(data.id);
+    setSelectedPalace(null);
+  }
+  // 一律從目前的命盤資料取宮位，避免沿用舊命盤的宮干與星曜
+  const selectedPalace = selectedRaw ? data.palaces.find((p) => p.branch === selectedRaw.branch) ?? null : null;
   const containerRef = useRef<HTMLDivElement>(null);
   const [lineCoords, setLineCoords] = useState<FlyingLine[]>([]);
 
@@ -200,6 +208,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect
     <div className="w-full flex flex-col items-center">
       <div
         ref={containerRef}
+        data-export="ziwei-grid"
         className="relative w-full max-w-5xl bg-slate-100 p-2 sm:p-3 rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
       >
         {/* 動態引線圖層 (飛星/三合/四化模式專屬連線) */}
@@ -213,21 +222,26 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect
                   x2={line.x2}
                   y2={line.y2}
                   stroke={line.color}
-                  strokeWidth="2.5"
+                  strokeWidth="2"
+                  strokeOpacity="0.75"
                   strokeDasharray="5 5"
-                  className="animate-pulse"
                 />
-                <circle cx={(line.x1 + line.x2) / 2} cy={(line.y1 + line.y2) / 2} r="10" fill="#ffffff" stroke={line.color} strokeWidth="1.5" />
-                <text
-                  x={(line.x1 + line.x2) / 2}
-                  y={(line.y1 + line.y2) / 2 + 3.5}
-                  textAnchor="middle"
-                  fill={line.color}
-                  fontSize="10"
-                  fontWeight="900"
-                >
-                  {line.type === '祿' ? 'A' : line.type === '權' ? 'B' : line.type === '科' ? 'C' : line.type === '忌' ? 'D' : '線'}
-                </text>
+                {/* 只有四化連線需要標字；三合連線本身就清楚，不另加圓圈以免壓到文字 */}
+                {line.type !== 'sanhe' && (
+                  <>
+                    <circle cx={(line.x1 + line.x2) / 2} cy={(line.y1 + line.y2) / 2} r="9" fill="#ffffff" stroke={line.color} strokeWidth="1.5" />
+                    <text
+                      x={(line.x1 + line.x2) / 2}
+                      y={(line.y1 + line.y2) / 2 + 3.5}
+                      textAnchor="middle"
+                      fill={line.color}
+                      fontSize="10"
+                      fontWeight="900"
+                    >
+                      {line.type}
+                    </text>
+                  </>
+                )}
               </g>
             ))}
           </svg>
