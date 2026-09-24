@@ -63,10 +63,11 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
     return data.palaces.find((p) => p.branch === branch) || data.palaces[0];
   };
 
-  // 再次點擊相同宮位時取消選中與連線
+  // 再次點擊相同宮位卡片時：立刻清除連線與高亮
   const handleSelect = (palace: PalaceData) => {
-    if (selectedPalace?.branch === palace.branch) {
+    if (selectedPalace && selectedPalace.branch === palace.branch) {
       setSelectedPalace(null);
+      setLineCoords([]);
       if (onPalaceSelect) onPalaceSelect(null);
     } else {
       setSelectedPalace(palace);
@@ -80,8 +81,8 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
         ref={containerRef}
         className="relative w-full max-w-5xl bg-slate-100 p-2 sm:p-3 rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
       >
-        {/* 三方四正連線 */}
-        {lineCoords.length > 0 && (
+        {/* 三方四正連線 (僅在有選中宮位時呈現) */}
+        {selectedPalace && lineCoords.length > 0 && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-30">
             {lineCoords.map((line, i) => (
               <g key={i}>
