@@ -40,7 +40,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
   const dayCount = selection.year !== null && selection.month !== null
     ? getLunarMonthDayCount(selection.year, selection.month)
     : 30;
-  const showDetail = mode !== 'feixing'; // 飛星模式只看大限與流年
+  const showDetail = mode === 'sanhe'; // 飛星、四化模式只看大限與流年
 
   const pickDecade = (key: string) =>
     onChange(selection.decadeKey === key

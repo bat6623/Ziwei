@@ -30,14 +30,18 @@ const Badge: React.FC<{ text: string; color: string; outline?: boolean; big?: bo
 
 export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected, flyingMarks, inSanFang, onSelect }) => {
   const isFeixing = mode === 'feixing';
+  const isSihua = mode === 'sihua';
+  // 飛星與四化盤照文墨天機只列主星、六吉六煞與幾顆桃花刑星
+  const compact = isFeixing || isSihua;
 
   const primaryStars: Star[] = [...palace.mainStars, ...palace.luckyStars, ...palace.badStars];
-  const minorStars: Star[] = isFeixing
+  const minorStars: Star[] = compact
     ? palace.minorStars.filter((s) => FEIXING_MINOR.includes(s.name))
     : palace.minorStars;
 
   const starColor = (star: Star, small: boolean) => {
     if (isFeixing) return star.type === 'main' ? 'text-rose-800 dark:text-rose-300' : 'text-purple-800 dark:text-purple-300';
+    if (isSihua) return star.type === 'main' ? 'text-label' : 'text-label2';
     if (small || star.name === '天馬') return 'text-blue-700 dark:text-blue-400';
     if (SIX_BAD.includes(star.name)) return 'text-label';
     return 'text-rose-700 dark:text-rose-400';
@@ -45,13 +49,12 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
 
   const renderBadges = (star: Star) => {
     const badges: React.ReactNode[] = [];
-    // 四化模式的生年四化已經整塊上色，不用再加標籤
-    if (star.mutagen && mode !== 'sihua') {
-      // 三合模式照文墨天機：生年四化一律紅底；其他模式依四化類別上色
-      const color = mode === 'sanhe' ? MUTAGEN_COLOR['忌'] : MUTAGEN_COLOR[star.mutagen];
-      badges.push(<Badge key="birth" text={star.mutagen} color={color} big={isFeixing} />);
+    if (star.mutagen) {
+      // 三合、四化照文墨天機：生年四化一律紅底；其他模式依四化類別上色
+      const color = mode !== 'feixing' ? MUTAGEN_COLOR['忌'] : MUTAGEN_COLOR[star.mutagen];
+      badges.push(<Badge key="birth" text={star.mutagen} color={color} big={compact} />);
     }
-    if (!isFeixing) {
+    if (!compact) {
       palace.flowMutagens?.filter((fm) => fm.starName === star.name).forEach((fm, i) => {
         badges.push(<Badge key={`flow-${i}`} text={fm.mutagen} color={FLOW_LEVEL_COLOR[fm.level]} />);
       });
@@ -65,9 +68,8 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
   const renderStar = (star: Star, small: boolean) => {
     // 星位標示：
     // 飛星 → 選取宮位飛到的星，填該四化的顏色
-    // 四化 → 生年四化的星，填該四化的顏色
     // 三合 → 三方四正宮位裡的主星，填強調黃
-    const fly = isFeixing ? flyingMarks?.[star.name]?.[0] : mode === 'sihua' ? star.mutagen : undefined;
+    const fly = isFeixing ? flyingMarks?.[star.name]?.[0] : undefined;
     const sanfangMain = mode === 'sanhe' && inSanFang && star.type === 'main';
     const highlight = fly
       ? { backgroundColor: MUTAGEN_COLOR[fly], color: '#fff' }
@@ -79,8 +81,8 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       <span
         style={highlight}
         className={`[writing-mode:vertical-rl] font-bold leading-[1.05] ${highlight ? 'rounded-[3px] py-0.5' : starColor(star, small)} ${
-          isFeixing
-            ? 'text-[15px] sm:text-[22px]'
+          compact
+            ? `text-[15px] sm:text-[22px] ${isSihua ? 'font-normal' : ''}`
             : small
               ? 'text-[9px] sm:text-[12px] font-medium'
               : 'text-[12px] sm:text-[15px]'
@@ -88,7 +90,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       >
         {star.name}
       </span>
-      {!isFeixing && star.brightness && (
+      {!compact && star.brightness && (
         <span className="text-[8px] sm:text-[10px] text-label3 leading-none">{star.brightness}</span>
       )}
       {renderBadges(star)}
@@ -125,7 +127,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       <div className="flex-1" />
 
       {/* 大限流曜 (綠字直排) */}
-      {!isFeixing && palace.decadalStars && palace.decadalStars.length > 0 && (
+      {!compact && palace.decadalStars && palace.decadalStars.length > 0 && (
         <div className="flex justify-end gap-px mb-0.5">
           {palace.decadalStars.map((s) => (
             <span key={s} className="[writing-mode:vertical-rl] text-[8px] sm:text-[11px] text-green-700 dark:text-green-400 leading-none">
@@ -136,23 +138,53 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       )}
 
       {/* 年份歲數或流年／小限歲數 */}
-      {!isFeixing && (
+      {!compact && (
         palace.decadeYearInfo ? (
           <div className="text-center text-[9px] sm:text-[11px] text-label2 leading-none mb-0.5">
             {palace.decadeYearInfo.year}年{palace.decadeYearInfo.age}歲
           </div>
         ) : (
           palace.flowYearsList && !palace.dynamicDecadalName && (
-            <div className="hidden sm:block text-center text-[9px] text-label3 font-mono leading-tight mb-0.5">
-              <div>流年: {palace.flowYearsList.slice(0, 5).join(',')}</div>
-              <div>小限: {palace.smallLimitYears.slice(0, 5).join(',')}</div>
+            <div className="text-center text-[7px] sm:text-[9px] text-label3 sm:font-mono leading-tight mb-0.5 whitespace-nowrap tracking-tighter sm:tracking-normal">
+              <div>流年:{palace.flowYearsList.slice(0, 5).join(',')}</div>
+              <div>小限:{palace.smallLimitYears.slice(0, 5).join(',')}</div>
             </div>
           )
         )
       )}
 
       {/* 底部 */}
-      {isFeixing ? (
+      {isSihua ? (
+        <>
+          {palace.decadeYearInfo && (
+            <div className="text-center text-[9px] sm:text-xs text-label2 leading-none mb-1 whitespace-nowrap">
+              {palace.decadeYearInfo.year}年{palace.decadeYearInfo.age}虛歲
+            </div>
+          )}
+          {/* 照文墨：干支｜大限宮名與歲數｜本宮名 */}
+          <div className="flex items-stretch border-t border-separator -mx-1 -mb-1 sm:-mx-1.5 sm:-mb-1.5">
+            <span className="[writing-mode:vertical-rl] flex items-center justify-center px-0.5 sm:px-1 py-1 text-[13px] sm:text-lg text-label leading-none">
+              {palace.stem}{palace.branch}
+            </span>
+            <div className="flex-1 flex flex-col border-x border-separator">
+              <span className="text-center text-[12px] sm:text-lg text-label py-0.5 border-b border-separator leading-tight whitespace-nowrap">
+                {palace.dynamicDecadalName || '—'}
+              </span>
+              <span
+                className={`text-center text-[9px] sm:text-xs font-mono py-0.5 whitespace-nowrap ${
+                  palace.name === '命宮' ? 'text-rose-600 dark:text-rose-400 italic underline' : 'text-label2'
+                }`}
+              >
+                {palace.decadalRange[0]}~{palace.decadalRange[1]}
+              </span>
+            </div>
+            <span className="[writing-mode:vertical-rl] flex items-center justify-center px-0.5 sm:px-1 py-1 text-[13px] sm:text-lg text-label leading-none">
+              {palace.name.slice(0, 2)}
+              {palace.isBodyPalace && <span className="text-[8px] sm:text-[10px] text-rose-600 dark:text-rose-400">身</span>}
+            </span>
+          </div>
+        </>
+      ) : isFeixing ? (
         <div className="flex items-end justify-between gap-0.5">
           <div className="flex flex-col text-[9px] sm:text-xs text-blue-600 dark:text-blue-400 leading-tight whitespace-nowrap">
             {palace.decadeYearInfo && (
@@ -165,7 +197,11 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
             {palace.flowLevelName && <span className="font-bold">{palace.flowLevelName}</span>}
           </div>
           <div className="flex flex-col items-center leading-tight">
-            <span className="text-[9px] sm:text-xs text-label2 font-mono">
+            <span
+              className={`text-[9px] sm:text-xs font-mono ${
+                palace.name === '命宮' ? 'text-rose-600 dark:text-rose-400 italic underline' : 'text-label2'
+              }`}
+            >
               {palace.decadalRange[0]}~{palace.decadalRange[1]}
             </span>
             <span className="text-[12px] sm:text-lg font-black text-blue-900 dark:text-blue-300 whitespace-nowrap">

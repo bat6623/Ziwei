@@ -7,6 +7,8 @@ import { exportRecords, mergeRecords, parseBackupFile } from '../utils/backup';
 
 interface DataStorageManagerProps {
   currentChart: ZiweiChartData;
+  /** 目前的盤面種類，放進匯出圖片的檔名 */
+  modeLabel: string;
   onLoadRecord: (record: SavedRecord) => void;
 }
 
@@ -27,7 +29,7 @@ const circleIcon = 'shrink-0 w-11 h-11 rounded-full border border-separator flex
 const pillPrimary = 'h-11 px-5 rounded-full bg-accent text-on-accent text-[15px] font-medium hover:brightness-95 active:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer';
 const pillOutline = 'h-11 px-5 rounded-full border border-separator text-[15px] text-label hover:bg-fill active:bg-fill2 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 cursor-pointer';
 
-export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentChart, onLoadRecord }) => {
+export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentChart, modeLabel, onLoadRecord }) => {
   const [records, setRecords] = useState<SavedRecord[]>(loadRecords);
   const [status, setStatus] = useState<Status>({ kind: 'idle', text: '' });
   const [isExportingImage, setIsExportingImage] = useState(false);
@@ -110,10 +112,10 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
       if (navigator.share && navigator.canShare) {
         canvas.toBlob(async (blob) => {
           if (!blob) return;
-          const file = new File([blob], `紫微命盤_${currentChart.userInfo.name}.png`, { type: 'image/png' });
+          const file = new File([blob], `紫微命盤_${currentChart.userInfo.name}_${modeLabel}.png`, { type: 'image/png' });
           if (navigator.canShare({ files: [file] })) {
             try {
-              await navigator.share({ title: `紫微命盤_${currentChart.userInfo.name}`, files: [file] });
+              await navigator.share({ title: `紫微命盤_${currentChart.userInfo.name}_${modeLabel}`, files: [file] });
             } catch {
               // 使用者關掉分享選單
             }
@@ -132,7 +134,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
     if (!previewImage) return;
     const link = document.createElement('a');
     link.href = previewImage;
-    link.download = `紫微命盤_${currentChart.userInfo.name}.png`;
+    link.download = `紫微命盤_${currentChart.userInfo.name}_${modeLabel}.png`;
     link.click();
   };
 
@@ -249,7 +251,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
             </div>
             <p className="px-5 pb-2 text-[13px] text-label3">手機上長按圖片即可存到照片</p>
             <div className="px-4 overflow-y-auto flex-1 flex justify-center">
-              <img src={previewImage} alt={`紫微命盤_${currentChart.userInfo.name}`} className="max-w-full h-auto rounded-2xl" />
+              <img src={previewImage} alt={`紫微命盤_${currentChart.userInfo.name}_${modeLabel}`} className="max-w-full h-auto rounded-2xl" />
             </div>
             <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button type="button" onClick={handleDownloadDirect} className={`w-full ${pillPrimary} flex items-center justify-center gap-2`}>

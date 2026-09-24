@@ -26,6 +26,8 @@ const Chip: React.FC<{ color: string; outline?: boolean; text: string }> = ({ co
   </span>
 );
 
+const MODE_LABEL: Record<ChartTabMode, string> = { feixing: '飛星盤', sanhe: '三合盤', sihua: '四化盤' };
+
 export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift }) => {
   const { userInfo } = data;
   const isFeixing = mode === 'feixing';
@@ -34,7 +36,13 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
 
   return (
     <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-label">
-      <h2 className="text-center text-sm sm:text-2xl font-light tracking-tight">紫微命盤</h2>
+      {/* 標出盤面種類，匯出圖片時才看得出是哪一種盤 */}
+      <h2 className="flex items-center justify-center gap-1.5 sm:gap-2 text-sm sm:text-2xl font-light tracking-tight">
+        紫微命盤
+        <span className="rounded-full bg-accent text-on-accent px-1.5 sm:px-2.5 py-px text-[10px] sm:text-sm font-medium tracking-normal">
+          {MODE_LABEL[mode]}
+        </span>
+      </h2>
 
       <div className="flex flex-wrap justify-between gap-x-2">
         <span><span className="text-label3">姓名：</span>{userInfo.name}</span>
@@ -113,12 +121,24 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
         {mode === 'feixing' && (
           <>
             <Chip color={MUTAGEN_COLOR['祿']} text="生年四化" />
-            <Chip color={MUTAGEN_COLOR['權']} text="宮干飛化：星曜上色＋箭頭" />
+            <Chip color={MUTAGEN_COLOR['權']} text="點宮位：宮干飛化上色＋連線" />
+            <span>
+              自化圖示：
+              {(['祿', '權', '科', '忌'] as const).map((m) => (
+                <span key={m} style={{ color: MUTAGEN_COLOR[m] }}>→{m}</span>
+              ))}
+            </span>
           </>
         )}
-        {mode === 'sihua' && <span>連線：生年四化所在宮 → 對宮</span>}
+        {mode === 'sihua' && (
+          <>
+            <Chip color={MUTAGEN_COLOR['忌']} text="生年四化" />
+            <span>連線：化入對宮</span>
+            <span>外箭頭：自化</span>
+          </>
+        )}
       </div>
-      {mode !== 'sihua' && (
+      {(
         <div className="flex justify-center gap-1.5 text-[9px] sm:text-[11px] font-bold">
           {(['祿', '權', '科', '忌'] as const).map((m) => (
             <span key={m} style={{ color: MUTAGEN_COLOR[m] }}>{m}</span>

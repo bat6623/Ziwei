@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { calculateZiweiChart, applyFlowSelection } from './utils/ziweiEngine';
+import { calculateZiweiChart, applyFlowSelection, getDecadeList } from './utils/ziweiEngine';
 import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
 import { getBirthInput, type SavedRecord } from './utils/records';
 import { APP_VERSION, BUILD_TIME } from './utils/appVersion';
@@ -47,7 +47,6 @@ export function App() {
   // baseChart 是本命盤；畫面上的 chartData 再套上使用者選的流運
   const [baseChart, setBaseChart] = useState<ZiweiChartData>(() => calculateZiweiChart(getInitialInput()));
   const [flowSel, setFlowSel] = useState<FlowSelection>(NO_FLOW);
-  const chartData = useMemo(() => applyFlowSelection(baseChart, flowSel), [baseChart, flowSel]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const theme = useTheme();
   const [updateNotice, setUpdateNotice] = useState<string | null>(UPDATE_NOTICE);
@@ -60,6 +59,12 @@ export function App() {
 
   // 頁面切換 Tab (飛星 | 三合 | 四化)
   const [tabMode, setTabMode] = useState<ChartTabMode>('sanhe');
+  // 飛星、四化盤照文墨天機：一定帶著大限 (沒選時預設命宮那一個大限)，宮位下方才有大限宮名與流年歲數
+  const effectiveSel = useMemo<FlowSelection>(
+    () => (tabMode !== 'sanhe' && !flowSel.decadeKey ? { ...flowSel, decadeKey: getDecadeList(baseChart)[0].key } : flowSel),
+    [tabMode, flowSel, baseChart],
+  );
+  const chartData = useMemo(() => applyFlowSelection(baseChart, effectiveSel), [baseChart, effectiveSel]);
   const [infoModalTab, setInfoModalTab] = useState<'help' | 'about' | null>(null);
 
   const handleCalculate = (input: BirthInput) => {
@@ -110,7 +115,7 @@ export function App() {
   // 模式提示字串
   const notice = {
     feixing: ['飛星', '點一個宮位，空心框標出它的宮干把祿、權、科、忌飛到哪顆星'],
-    sihua: ['四化', '標出生年祿、權、科、忌所在的宮位，連線到對宮'],
+    sihua: ['四化', '每一宮的宮干化到對宮就連線，化回本宮就畫朝外的箭頭；宮位下方是大限宮名與流年歲數'],
     sanhe: ['三合', '點一個宮位，看它的對宮與三方四正；再點一次取消'],
   }[tabMode];
 
@@ -197,11 +202,11 @@ export function App() {
 
         {/* 流運選單 */}
         <div className="w-full max-w-5xl">
-          <FlowCycleBar data={baseChart} mode={tabMode} selection={flowSel} onChange={setFlowSel} />
+          <FlowCycleBar data={baseChart} mode={tabMode} selection={effectiveSel} onChange={setFlowSel} />
         </div>
 
         {/* 儲存與 iCloud 備份 */}
-        <DataStorageManager currentChart={baseChart} onLoadRecord={handleLoadRecord} />
+        <DataStorageManager currentChart={baseChart} modeLabel={{ feixing: '飛星盤', sanhe: '三合盤', sihua: '四化盤' }[tabMode]} onLoadRecord={handleLoadRecord} />
 
         <p className="mb-2 text-[12px] text-label3">
           版本 {APP_VERSION} · {BUILD_TIME} 建置
