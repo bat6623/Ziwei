@@ -8,6 +8,8 @@ interface PalaceCardProps {
   isSelected: boolean;
   /** 飛星模式：選取宮位的宮干飛化到本宮哪些星 */
   flyingMarks?: Record<string, Mutagen[]>;
+  /** 三合模式：本宮位在選取宮位的三方四正裡 (主星要標示) */
+  inSanFang?: boolean;
   onSelect: (palace: PalaceData) => void;
 }
 
@@ -26,7 +28,7 @@ const Badge: React.FC<{ text: string; color: string; outline?: boolean; big?: bo
   </span>
 );
 
-export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected, flyingMarks, onSelect }) => {
+export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected, flyingMarks, inSanFang, onSelect }) => {
   const isFeixing = mode === 'feixing';
 
   const primaryStars: Star[] = [...palace.mainStars, ...palace.luckyStars, ...palace.badStars];
@@ -43,7 +45,8 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
 
   const renderBadges = (star: Star) => {
     const badges: React.ReactNode[] = [];
-    if (star.mutagen) {
+    // 四化模式的生年四化已經整塊上色，不用再加標籤
+    if (star.mutagen && mode !== 'sihua') {
       // 三合模式照文墨天機：生年四化一律紅底；其他模式依四化類別上色
       const color = mode === 'sanhe' ? MUTAGEN_COLOR['忌'] : MUTAGEN_COLOR[star.mutagen];
       badges.push(<Badge key="birth" text={star.mutagen} color={color} big={isFeixing} />);
@@ -60,13 +63,22 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
   };
 
   const renderStar = (star: Star, small: boolean) => {
-    // 飛星模式：被選取宮位飛到的星，整塊填上該四化的顏色
-    const fly = isFeixing ? flyingMarks?.[star.name]?.[0] : undefined;
+    // 星位標示：
+    // 飛星 → 選取宮位飛到的星，填該四化的顏色
+    // 四化 → 生年四化的星，填該四化的顏色
+    // 三合 → 三方四正宮位裡的主星，填強調黃
+    const fly = isFeixing ? flyingMarks?.[star.name]?.[0] : mode === 'sihua' ? star.mutagen : undefined;
+    const sanfangMain = mode === 'sanhe' && inSanFang && star.type === 'main';
+    const highlight = fly
+      ? { backgroundColor: MUTAGEN_COLOR[fly], color: '#fff' }
+      : sanfangMain
+        ? { backgroundColor: 'var(--c-accent)', color: 'var(--c-on-accent)' }
+        : undefined;
     return (
     <div key={star.id} className="flex flex-col items-center gap-px">
       <span
-        style={fly ? { backgroundColor: MUTAGEN_COLOR[fly], color: '#fff' } : undefined}
-        className={`[writing-mode:vertical-rl] font-bold leading-[1.05] ${fly ? 'rounded-[3px] py-0.5' : starColor(star, small)} ${
+        style={highlight}
+        className={`[writing-mode:vertical-rl] font-bold leading-[1.05] ${highlight ? 'rounded-[3px] py-0.5' : starColor(star, small)} ${
           isFeixing
             ? 'text-[15px] sm:text-[22px]'
             : small

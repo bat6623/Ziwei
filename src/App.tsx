@@ -97,12 +97,6 @@ export function App() {
     handleCalculate(getInitialInput());
   };
 
-  const MODE_TABS: { key: ChartTabMode; label: string }[] = [
-    { key: 'feixing', label: '飛星' },
-    { key: 'sanhe', label: '三合' },
-    { key: 'sihua', label: '四化' },
-  ];
-
   // 模式提示字串
   const notice = {
     feixing: ['飛星', '點一個宮位，空心框標出它的宮干把祿、權、科、忌飛到哪顆星'],
@@ -122,22 +116,6 @@ export function App() {
           <img src={`${import.meta.env.BASE_URL}icons/logo.svg`} alt="紫微斗數" width={44} height={44} className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover" />
           <span className="pl-1 sm:px-2 text-[15px] sm:text-[17px] text-label whitespace-nowrap">紫微斗數</span>
 
-          {/* 模式切換 (桌機) */}
-          <nav className="hidden sm:flex items-center gap-1 ml-1" aria-label="盤面模式">
-            {MODE_TABS.map((m) => (
-              <button
-                key={m.key}
-                type="button"
-                onClick={() => setTabMode(m.key)}
-                aria-current={tabMode === m.key ? 'page' : undefined}
-                className={`h-11 px-6 rounded-full text-[15px] transition-colors cursor-pointer ${
-                  tabMode === m.key ? 'bg-accent text-on-accent' : 'text-label2 hover:text-label hover:bg-fill'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </nav>
 
           <div className="flex-1" />
 
@@ -204,7 +182,7 @@ export function App() {
         </section>
 
         <div className="w-full mt-5">
-          <ZiweiGrid data={chartData} mode={tabMode} onShift={handleShift} />
+          <ZiweiGrid data={chartData} mode={tabMode} onShift={handleShift} onModeChange={setTabMode} />
         </div>
 
         {/* 流運選單 */}

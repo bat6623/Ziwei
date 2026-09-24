@@ -9,7 +9,14 @@ interface ZiweiGridProps {
   data: ZiweiChartData;
   mode: ChartTabMode; // 頁面切換模式: 飛星 | 三合 | 四化
   onShift?: (unit: 'day' | 'hour', delta: number) => void;
+  onModeChange?: (mode: ChartTabMode) => void;
 }
+
+const MODES: { key: ChartTabMode; label: string }[] = [
+  { key: 'feixing', label: '飛星' },
+  { key: 'sanhe', label: '三合' },
+  { key: 'sihua', label: '四化' },
+];
 
 const ZHI: EarthlyBranch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 
@@ -71,7 +78,7 @@ function usePalaceRects(ref: React.RefObject<HTMLDivElement | null>) {
 
 interface Line { from: EarthlyBranch; to: EarthlyBranch; color: string; label?: string; arrow?: boolean; solid?: boolean }
 
-export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => {
+export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift, onModeChange }) => {
   const mingBranch = (data.palaces.find((p) => p.name === '命宮') || data.palaces[0]).branch;
   const [selectedBranch, setSelectedBranch] = useState<EarthlyBranch | null>(mingBranch);
   const [prevChartId, setPrevChartId] = useState<string>(data.id);
@@ -122,6 +129,11 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
     }
   }
 
+  // 三合模式：選取宮位的本宮、對宮、三方
+  const sanFang = new Set<EarthlyBranch>(
+    mode === 'sanhe' && selected ? [0, 4, 6, 8].map((n) => shiftZhi(selected.branch, n)) : [],
+  );
+
   const handleSelect = (palace: PalaceData) => {
     setSelectedBranch((cur) => (cur === palace.branch ? null : palace.branch));
   };
@@ -133,6 +145,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
       mode={mode}
       isSelected={selectedBranch === b}
       flyingMarks={flyingMarks}
+      inSanFang={sanFang.has(b)}
       onSelect={handleSelect}
     />
   );
@@ -154,6 +167,28 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
         data-export="ziwei-grid"
         className="relative w-full max-w-5xl mx-auto bg-card p-2 sm:p-3 rounded-[20px] sm:rounded-[28px]"
       >
+        {/* 模式切換 (桌機放在命盤右上角；手機在底部列)，匯出圖片時不拍進去 */}
+        {onModeChange && (
+          <div data-html2canvas-ignore className="hidden sm:flex justify-end mb-2">
+            <div role="tablist" aria-label="盤面模式" className="flex p-1 rounded-full bg-grouped">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={mode === m.key}
+                  onClick={() => onModeChange(m.key)}
+                  className={`h-9 px-5 rounded-full text-[15px] transition-colors cursor-pointer ${
+                    mode === m.key ? 'bg-accent text-on-accent' : 'text-label2 hover:text-label hover:bg-card2'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-label3 font-serif mb-1">
           <span>南偏東</span>
           <span>正南方</span>
