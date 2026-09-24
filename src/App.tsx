@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { calculateZiweiChart, updateChartFlowCycle } from './utils/ziweiEngine';
-import type { ZiweiChartData, BirthInput, PalaceData, ChartTabMode } from './types/ziwei';
+import { useMemo, useState } from 'react';
+import { calculateZiweiChart, applyFlowSelection } from './utils/ziweiEngine';
+import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
+import { getBirthInput, type SavedRecord } from './utils/githubSync';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
 import { DataStorageManager } from './components/DataStorageManager';
@@ -34,12 +35,14 @@ const DEMO_INPUT: BirthInput = {
   minute: 5,
 };
 
+const NO_FLOW: FlowSelection = { decadeKey: null, year: null, month: null, day: null, hour: null };
+
 export function App() {
-  const [chartData, setChartData] = useState<ZiweiChartData>(() =>
-    calculateZiweiChart(getInitialInput())
-  );
+  // baseChart 是本命盤；畫面上的 chartData 再套上使用者選的流運
+  const [baseChart, setBaseChart] = useState<ZiweiChartData>(() => calculateZiweiChart(getInitialInput()));
+  const [flowSel, setFlowSel] = useState<FlowSelection>(NO_FLOW);
+  const chartData = useMemo(() => applyFlowSelection(baseChart, flowSel), [baseChart, flowSel]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  const [, setSelectedPalace] = useState<PalaceData | null>(null);
 
   // 頁面切換 Tab (飛星 | 三合 | 四化)
   const [tabMode, setTabMode] = useState<ChartTabMode>('sanhe');
@@ -48,9 +51,40 @@ export function App() {
   const [infoModalTab, setInfoModalTab] = useState<'help' | 'about' | null>(null);
 
   const handleCalculate = (input: BirthInput) => {
-    const newChart = calculateZiweiChart(input);
-    setChartData(newChart);
-    setSelectedPalace(null);
+    setBaseChart(calculateZiweiChart(input));
+    setFlowSel(NO_FLOW);
+  };
+
+  // 載入存檔時一律依生辰重新排盤，舊存檔裡算錯的資料才不會被沿用
+  const handleLoadRecord = (saved: SavedRecord) => {
+    const recalculated = calculateZiweiChart(saved.birthInput);
+    setBaseChart({ ...recalculated, id: saved.id, createdAt: saved.createdAt });
+    setFlowSel(NO_FLOW);
+  };
+
+  // 中宮「日↑↓ 時↑↓」：生辰往前後推一天或一個時辰 (兩小時) 重新排盤
+  const handleShift = (unit: 'day' | 'hour', delta: number) => {
+    const input = getBirthInput(baseChart);
+    let d: Date;
+    if (input.isLunar) {
+      const [date, time] = baseChart.userInfo.solarBirth.split(' ');
+      const [y, m, dd] = date.split('-').map(Number);
+      const [h, mi] = time.split(':').map(Number);
+      d = new Date(y, m - 1, dd, h, mi);
+    } else {
+      d = new Date(input.year, input.month - 1, input.day, input.hour, input.minute);
+    }
+    if (unit === 'day') d.setDate(d.getDate() + delta);
+    else d.setHours(d.getHours() + delta * 2);
+    handleCalculate({
+      ...input,
+      isLunar: false,
+      year: d.getFullYear(),
+      month: d.getMonth() + 1,
+      day: d.getDate(),
+      hour: d.getHours(),
+      minute: d.getMinutes(),
+    });
   };
 
   const handleLoadDemo = () => {
@@ -70,22 +104,10 @@ export function App() {
     }
   };
 
-  const handleFlowCycleChange = (params: {
-    decadeKey: string;
-    year: number;
-    month: string;
-    day: string;
-    hour: string;
-  }) => {
-    setChartData((prev) =>
-      updateChartFlowCycle(prev, params.year, params.decadeKey, params.month, params.day, params.hour)
-    );
-  };
-
   // 模式提示字串
   const getBannerNotice = () => {
     if (tabMode === 'feixing') {
-      return '飛星：點一個宮位，看它的祿、權、科、忌飛到哪一宮';
+      return '飛星：點一個宮位，空心框標出它的宮干祿、權、科、忌飛到哪顆星';
     }
     if (tabMode === 'sihua') {
       return '四化：標出生年祿、權、科、忌所在的宮位與對宮';
@@ -94,7 +116,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col items-center pb-32 selection:bg-amber-500 selection:text-white">
+    <div className="min-h-screen bg-[#f2f2f7] text-slate-900 font-sans flex flex-col items-center pb-36 selection:bg-amber-500 selection:text-white">
       {/* 頂部 Header */}
       <header className="w-full bg-white/90 border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3">
@@ -153,18 +175,17 @@ export function App() {
         </div>
 
         {/* 經典地支盤 4x4 網格 */}
-        <ZiweiGrid data={chartData} mode={tabMode} onPalaceSelect={(palace) => setSelectedPalace(palace)} />
+        <ZiweiGrid data={chartData} mode={tabMode} onShift={handleShift} />
 
         {/* 下方流運切換面板 (大限, 流年/小限, 流月, 流日, 流時) */}
         <div className="w-full max-w-5xl">
-          <FlowCycleBar data={chartData} onFlowCycleChange={handleFlowCycleChange} />
+          <FlowCycleBar data={baseChart} mode={tabMode} selection={flowSel} onChange={setFlowSel} />
         </div>
 
         {/* 儲存與圖片匯出管理區 */}
         <DataStorageManager
-          currentChart={chartData}
-          onLoadChart={(c) => setChartData(c)}
-          onClearCache={handleClearCache}
+          currentChart={baseChart}
+          onLoadRecord={handleLoadRecord}
         />
       </main>
 

@@ -26,6 +26,11 @@
   .animate-fade-in {
     animation: fadeIn 0.2s ease-out forwards;
   }
+  /* 蘋果系統字型：中文優先用蘋方 */
+  .font-apple {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
 }
 
 body {

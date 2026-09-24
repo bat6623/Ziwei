@@ -1,199 +1,134 @@
 import React from 'react';
-import type { ZiweiChartData } from '../types/ziwei';
-import { Sparkles, Calendar, User, Compass, Clock } from 'lucide-react';
+import type { ZiweiChartData, ChartTabMode } from '../types/ziwei';
+import { MUTAGEN_COLOR, FLOW_LEVEL_COLOR } from './chartColors';
 
 interface CentralPanelProps {
   data: ZiweiChartData;
-  selectedPalaceName?: string;
+  mode: ChartTabMode;
+  onShift?: (unit: 'day' | 'hour', delta: number) => void;
 }
 
-export const CentralPanel: React.FC<CentralPanelProps> = ({ data, selectedPalaceName }) => {
-  const { userInfo } = data;
+const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+  <div className="flex flex-wrap items-baseline gap-x-1">
+    <span className="text-slate-500 shrink-0">{label}：</span>
+    <span className="text-slate-900 font-medium">{children}</span>
+  </div>
+);
 
-  // 十神文字對應色彩
-  const getTenGodColor = (tg: string) => {
-    if (tg.includes('財')) return 'text-emerald-700 bg-emerald-50 border-emerald-200';
-    if (tg.includes('官') || tg.includes('殺')) return 'text-purple-700 bg-purple-50 border-purple-200';
-    if (tg.includes('印')) return 'text-sky-700 bg-sky-50 border-sky-200';
-    if (tg.includes('食') || tg.includes('傷')) return 'text-amber-700 bg-amber-50 border-amber-200';
-    return 'text-rose-700 bg-rose-50 border-rose-200';
-  };
+// 圖例用的小方塊
+const Chip: React.FC<{ color: string; outline?: boolean; text: string }> = ({ color, outline, text }) => (
+  <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
+    <span
+      className="inline-block w-2.5 h-2.5 rounded-[2px]"
+      style={outline ? { border: `1px solid ${color}` } : { backgroundColor: color }}
+    />
+    {text}
+  </span>
+);
+
+export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift }) => {
+  const { userInfo } = data;
+  const isFeixing = mode === 'feixing';
+
+  const shiftBtn = 'px-1.5 sm:px-2 py-0.5 border border-slate-300 rounded bg-white text-slate-800 hover:bg-slate-100 active:bg-slate-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
-    <div className="w-full h-full bg-gradient-to-b from-amber-50/60 via-white to-slate-50/80 border-2 border-amber-300/80 rounded-xl p-1.5 sm:p-3 flex flex-col justify-between text-slate-800 relative overflow-hidden shadow-sm backdrop-blur-xs">
-      {/* 浮水印 */}
-      <div className="absolute -right-8 -bottom-8 opacity-5 pointer-events-none text-amber-700 font-serif text-9xl select-none">
-        紫微
+    <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-slate-800">
+      <h2 className="text-center text-sm sm:text-xl font-serif font-bold text-slate-900 tracking-wider">紫微命盤</h2>
+
+      <div className="flex flex-wrap justify-between gap-x-2">
+        <span><span className="text-slate-500">姓名：</span>{userInfo.name}</span>
+        <span className="font-medium">{userInfo.yinyangGender} {userInfo.fiveElementElement}</span>
       </div>
+      <Row label="真太陽時">{userInfo.trueSolarBirth}</Row>
+      <Row label="鐘錶時間">{userInfo.solarBirth}</Row>
+      <Row label="農曆">{userInfo.lunarBirth}</Row>
 
-      {/* 標題 */}
-      <div className="flex justify-between items-center border-b border-amber-200 pb-1.5">
-        <div className="flex items-center gap-1.5">
-          <Sparkles className="hidden sm:block w-4 h-4 text-amber-600" />
-          <h2 className="text-sm sm:text-base font-black text-amber-800 tracking-wider font-serif">
-            紫微命盤
-          </h2>
-        </div>
-      </div>
-
-      {/* 基本資料 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-0.5 sm:gap-2 my-1 text-[11px] sm:text-xs">
-        <div className="flex items-center gap-1 text-slate-700">
-          <User className="hidden sm:block w-3.5 h-3.5 text-amber-600" />
-          <span>姓名：<strong className="text-slate-900 font-black">{userInfo.name}</strong></span>
-        </div>
-        <div className="sm:text-right text-amber-800 font-bold">
-          {userInfo.yinyangGender} <span className="text-cyan-700 ml-1">{userInfo.fiveElementElement}</span>
-        </div>
-      </div>
-
-      {/* 鐘錶時間、真太陽時與農曆 */}
-      <div className="bg-white/90 rounded-lg p-1.5 sm:p-2 border border-slate-200 space-y-0.5 text-[11px] sm:text-xs font-mono shadow-2xs">
-        {userInfo.trueSolarBirth && (
-          <div className="hidden sm:flex flex-col sm:flex-row sm:items-center sm:justify-between text-slate-700">
-            <span className="text-slate-500 flex items-center gap-1 text-[11px]">
-              <Clock className="w-3 h-3 text-amber-600" /> 真太陽時：
-            </span>
-            <span className="text-amber-900 font-bold">{userInfo.trueSolarBirth}</span>
+      {!isFeixing && (
+        <>
+          <div className="flex flex-wrap gap-x-2">
+            <span><span className="text-slate-500">命主：</span>{userInfo.masterStar}</span>
+            <span><span className="text-slate-500">身主：</span>{userInfo.bodyMasterStar}</span>
+            <span><span className="text-slate-500">子斗：</span>{userInfo.ziDou}</span>
           </div>
-        )}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-slate-700">
-          <span className="text-slate-500 flex items-center gap-1 text-[11px]">
-            <Calendar className="w-3 h-3 text-slate-400" /> 鐘錶時間：
-          </span>
-          <span className="text-amber-800 font-bold">{userInfo.solarBirth}</span>
-        </div>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-slate-700">
-          <span className="text-slate-500 text-[11px]">農曆：</span>
-          <span className="text-emerald-700 font-bold">{userInfo.lunarBirth}</span>
-        </div>
-        <div className="flex flex-wrap justify-between gap-x-2 text-[11px] text-slate-700 pt-1 border-t border-slate-100 font-sans">
-          <span>命主：<strong className="text-amber-700 font-bold">{userInfo.masterStar}</strong></span>
-          <span>身主：<strong className="text-cyan-700 font-bold">{userInfo.bodyMasterStar}</strong></span>
-          <span>子斗：<strong className="text-rose-700 font-bold">{userInfo.ziDou}</strong></span>
-        </div>
-      </div>
 
-      {/* 節氣與非節氣八字四柱 */}
-      <div className="my-1 bg-amber-50/40 p-1.5 rounded-lg border border-amber-200/80">
-        <div className="text-[10px] text-slate-500 mb-0.5 flex justify-between font-medium">
-          <span>節氣四柱</span>
-          <span className="text-slate-400">非節氣四柱</span>
-        </div>
-        <div className="grid grid-cols-4 gap-1 text-center font-bold text-xs sm:text-sm font-serif">
-          <div className="bg-white p-0.5 rounded border border-rose-300 text-rose-700 shadow-2xs">
-            {userInfo.fourPillars.year}
-          </div>
-          <div className="bg-white p-0.5 rounded border border-amber-300 text-amber-800 shadow-2xs">
-            {userInfo.fourPillars.month}
-          </div>
-          <div className="bg-white p-0.5 rounded border border-cyan-300 text-cyan-800 shadow-2xs">
-            {userInfo.fourPillars.day}
-          </div>
-          <div className="bg-white p-0.5 rounded border border-emerald-300 text-emerald-800 shadow-2xs">
-            {userInfo.fourPillars.time}
-          </div>
-        </div>
-        <div className="text-center text-[10px] text-amber-800 font-semibold mt-0.5">
-          {userInfo.startAgeDetail || userInfo.startAgeNotice}
-        </div>
-
-        {/* 圖 2 經典文墨天機微調控制列 */}
-        <div className="hidden sm:flex justify-center items-center gap-1 mt-1 pt-1 border-t border-amber-200/60 font-mono">
-          <button
-            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="增加一日（尚未開放）"
-            disabled
-          >
-            日↑
-          </button>
-          <button
-            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="減少一日（尚未開放）"
-            disabled
-          >
-            日↓
-          </button>
-          <button
-            className="bg-slate-100 hover:bg-slate-200 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded border border-slate-400 shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="盤面視圖（尚未開放）"
-            disabled
-          >
-            天盤▽
-          </button>
-          <button
-            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="增加一時辰（尚未開放）"
-            disabled
-          >
-            時↑
-          </button>
-          <button
-            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-            title="減少一時辰（尚未開放）"
-            disabled
-          >
-            時↓
-          </button>
-        </div>
-      </div>
-
-      {/* 八字大運走勢圖卡片 (8步大運) */}
-      {userInfo.luckCycles && userInfo.luckCycles.length > 0 && (
-        <div className="hidden sm:block bg-slate-50/90 rounded-lg p-1.5 border border-slate-200 my-0.5">
-          <div className="text-[9.5px] text-slate-400 font-bold mb-0.5 text-center">八字大運順逆走勢圖</div>
-          <div className="grid grid-cols-8 gap-0.5 text-center">
-            {userInfo.luckCycles.map((cycle, idx) => (
-              <div key={idx} className="flex flex-col items-center">
-                {/* 十神 */}
-                <span className={`text-[8.5px] font-bold px-0.5 rounded border ${getTenGodColor(cycle.tenGod)}`}>
-                  {cycle.tenGod.substring(0, 2)}
-                </span>
-                {/* 干支 */}
-                <span className="text-[10px] font-bold font-serif text-slate-800 mt-0.5">
-                  {cycle.stemBranch}
-                </span>
-                {/* 虛歲 */}
-                <span className="text-[8.5px] text-slate-500 font-mono">
-                  {cycle.age}歲
-                </span>
-                {/* 年份 */}
-                <span className="text-[8px] text-slate-400 font-mono">
-                  {cycle.year}
-                </span>
+          {/* 節氣與非節氣四柱 */}
+          <div className="grid grid-cols-2 gap-2">
+            {([['節氣四柱', userInfo.fourPillars], ['非節氣四柱', userInfo.nonTermFourPillars]] as const).map(([label, pillars]) => (
+              <div key={label}>
+                <div className="text-[9px] sm:text-[11px] text-slate-500">{label}</div>
+                <div className="grid grid-cols-4 text-center font-serif font-bold text-[12px] sm:text-lg leading-tight text-slate-900">
+                  {[pillars.year, pillars.month, pillars.day, pillars.time].map((gz, i) => (
+                    <div key={i} className="flex flex-col">
+                      <span>{gz.charAt(0)}</span>
+                      <span>{gz.charAt(1)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
+          <div className="text-center">{userInfo.startAgeDetail || userInfo.startAgeNotice}</div>
+
+          {/* 八字大運 */}
+          {userInfo.luckCycles.length > 0 && (
+            <div className="grid grid-cols-8 text-center leading-tight">
+              {userInfo.luckCycles.map((c) => (
+                <div key={c.stemBranch + c.age} className="flex flex-col items-center">
+                  <span className="text-[7px] sm:text-[9px] text-slate-500">{c.tenGod}</span>
+                  <span className="[writing-mode:vertical-rl] font-serif font-bold text-[11px] sm:text-sm text-slate-900">{c.stemBranch}</span>
+                  <span className="text-[7px] sm:text-[10px] text-slate-500">{c.age}歲</span>
+                  <span className="text-[7px] sm:text-[10px] text-slate-400">{c.year}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 生辰微調：往前後推一日／一時辰重新排盤 */}
+          <div className="flex justify-center gap-1 text-[10px] sm:text-sm">
+            <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('day', 1)} title="生日往後一天">日↑</button>
+            <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('day', -1)} title="生日往前一天">日↓</button>
+            <button type="button" className={shiftBtn} disabled title="天盤／地盤／人盤切換尚未開放">天盤▽</button>
+            <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('hour', 1)} title="出生時間往後一個時辰">時↑</button>
+            <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('hour', -1)} title="出生時間往前一個時辰">時↓</button>
+          </div>
+        </>
+      )}
+
+      <div className="flex-1" />
+
+      {/* 圖例 */}
+      <div className="flex flex-wrap justify-center gap-x-2 gap-y-0.5 text-[9px] sm:text-[11px] text-slate-600">
+        {mode === 'sanhe' && (
+          <>
+            <Chip color={MUTAGEN_COLOR['忌']} text="生年四化" />
+            <Chip color={FLOW_LEVEL_COLOR['大']} text="大限" />
+            <Chip color={FLOW_LEVEL_COLOR['年']} text="流年" />
+            <Chip color={FLOW_LEVEL_COLOR['月']} text="流月" />
+            <Chip color={FLOW_LEVEL_COLOR['日']} text="流日" />
+            <Chip color={FLOW_LEVEL_COLOR['時']} text="流時" />
+            <Chip color={MUTAGEN_COLOR['權']} outline text="自化" />
+          </>
+        )}
+        {mode === 'feixing' && (
+          <>
+            <Chip color={MUTAGEN_COLOR['祿']} text="生年四化" />
+            <Chip color={MUTAGEN_COLOR['祿']} outline text="選取宮位的飛化" />
+          </>
+        )}
+        {mode === 'sihua' && <span>連線：生年四化所在宮 → 對宮</span>}
+      </div>
+      {mode !== 'sihua' && (
+        <div className="flex justify-center gap-1.5 text-[9px] sm:text-[11px] font-bold">
+          {(['祿', '權', '科', '忌'] as const).map((m) => (
+            <span key={m} style={{ color: MUTAGEN_COLOR[m] }}>{m}</span>
+          ))}
         </div>
       )}
 
-      {/* 流年與自化說明 */}
-      <div className="space-y-0.5">
-        <div className="text-center bg-amber-100/60 border border-amber-300/80 rounded py-0.5">
-          <span className="text-[10px] sm:text-[11px] font-bold text-amber-900 sm:tracking-wider">
-            流年：{userInfo.currentFlowYear}
-          </span>
-        </div>
-
-        {userInfo.activeFlowCycleInfo && (
-          <div className="text-center bg-blue-600 text-white rounded py-0.5 px-1 text-[9.5px] font-bold shadow-2xs">
-            {userInfo.activeFlowCycleInfo}
-          </div>
-        )}
-
-        <div className="hidden sm:flex justify-center items-center gap-2 text-[9.5px] text-slate-600 bg-white py-0.5 rounded border border-slate-200">
-          <span className="text-slate-500">自化圖示：</span>
-          <span className="text-emerald-600 font-bold">→祿</span>
-          <span className="text-rose-600 font-bold">→權</span>
-          <span className="text-purple-600 font-bold">→科</span>
-          <span className="text-sky-700 font-bold">→忌</span>
-        </div>
-      </div>
-
-      {selectedPalaceName && (
-        <div className="hidden sm:flex mt-1 text-center bg-sky-50 border border-sky-300 py-0.5 rounded-lg text-xs text-sky-800 font-bold items-center justify-center gap-1 shadow-2xs">
-          <Compass className="w-3.5 h-3.5" />
-          <span>正在檢視：<strong>{selectedPalaceName}</strong> (三方四正高亮中)</span>
+      {userInfo.activeFlowCycleInfo && (
+        <div className="text-center rounded bg-blue-50 text-blue-800 px-1 py-0.5 text-[9px] sm:text-xs font-medium">
+          {userInfo.activeFlowCycleInfo}
         </div>
       )}
     </div>

@@ -8,6 +8,18 @@ export type HeavenlyStem = '甲' | '乙' | '丙' | '丁' | '戊' | '己' | '庚'
 // 頁面切換模式: 飛星 | 三合 | 四化
 export type ChartTabMode = 'feixing' | 'sanhe' | 'sihua';
 
+// 流運層級：大限、流年、流月、流日、流時
+export type FlowLevel = '大' | '年' | '月' | '日' | '時';
+
+// 使用者在流運選單選的項目 (null = 未選)
+export interface FlowSelection {
+  decadeKey: string | null; // 'child' 或 '33-42'
+  year: number | null;
+  month: number | null;     // 1-12 (農曆)
+  day: number | null;       // 1-30 (農曆)
+  hour: number | null;      // 0-11 (子=0)
+}
+
 export interface Star {
   id: string;
   name: string;
@@ -64,17 +76,12 @@ export interface PalaceData {
   // 流年與小限歲數序列 (圖 2)
   flowYearsList?: number[];
   
-  // 動態流運標籤與四化
-  isCurrentFlowYearPalace?: boolean;
-  isCurrentDecadalPalace?: boolean;
-  dynamicDecadalName?: string;
-  dynamicFlowYearName?: string;
-  currentSelectedAgeInfo?: {
-    age: number;
-    year: number;
-    decadalPalaceName: string;
-  };
-  flowMutagens?: { starName: string; mutagen: Mutagen; label: string }[];
+  // 動態流運 (選了大限／流年／流月／流日／流時之後才有)
+  dynamicDecadalName?: string;          // 大限宮名，如「大命」
+  decadalStars?: string[];              // 大限流曜，如「大昌」「大羊」
+  decadeYearInfo?: { year: number; age: number }; // 此大限內流年經過本宮的年份與虛歲
+  flowLevelName?: string;               // 最細一層流運的宮名，如「年命」「月財」
+  flowMutagens?: { starName: string; mutagen: Mutagen; level: FlowLevel }[];
 }
 
 export interface FourPillars {
@@ -128,8 +135,10 @@ export interface ZiweiChartData {
     currentDecade: string;
     currentFlowYear: string;
     activeFlowCycleInfo?: string;
+    lunarBirthYear?: number;
     luckCycles: LuckCycleStep[];
   };
 
   palaces: PalaceData[];
+  birthInput?: BirthInput;
 }

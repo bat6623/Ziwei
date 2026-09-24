@@ -1,4 +1,5 @@
-import { Solar, Lunar } from 'lunar-javascript';
+import { Solar, Lunar, LunarMonth } from 'lunar-javascript';
+import { astro } from 'iztro';
 import type {
   BirthInput,
   ZiweiChartData,
@@ -10,7 +11,9 @@ import type {
   Brightness,
   Mutagen,
   Yinyang,
-  LuckCycleStep
+  LuckCycleStep,
+  FlowLevel,
+  FlowSelection
 } from '../types/ziwei';
 
 export const BRANCHES_ORDER: EarthlyBranch[] = ['巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑', '寅', '卯', '辰'];
@@ -61,7 +64,7 @@ const BODY_MASTER_MAP: Record<EarthlyBranch, string> = {
   '申': '天梁', '酉': '天同', '戌': '文昌', '亥': '天機'
 };
 
-const FOUR_MUTAGENS_MAP: Record<HeavenlyStem, Record<Mutagen, string>> = {
+export const FOUR_MUTAGENS_MAP: Record<HeavenlyStem, Record<Mutagen, string>> = {
   '甲': { '祿': '廉貞', '權': '破軍', '科': '武曲', '忌': '太陽' },
   '乙': { '祿': '天機', '權': '天梁', '科': '紫微', '忌': '太陰' },
   '丙': { '祿': '天同', '權': '天機', '科': '文昌', '忌': '廉貞' },
@@ -147,6 +150,34 @@ function getTenGod(dayStem: string, targetStem: string): string {
   };
   return map[dayStem]?.[targetStem] || '比肩';
 }
+
+const DEFAULT_LONGITUDE = 120;
+
+// 五虎遁：年干決定正月 (寅月) 的月干
+const TIGER_MONTH_STEM_START: Record<HeavenlyStem, number> = {
+  '甲': 2, '己': 2, '乙': 4, '庚': 4, '丙': 6, '辛': 6, '丁': 8, '壬': 8, '戊': 0, '癸': 0
+};
+const LUNAR_MONTH_NAMES = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '臘'];
+const ZHI_ORDER: EarthlyBranch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+// 某流年中，該宮位對應第幾個流月 (斗君所在宮為正月，順行)
+function getFlowMonthName(palaceBranch: EarthlyBranch, ziDou: EarthlyBranch, yearStem: HeavenlyStem, yearBranch: EarthlyBranch): string {
+  const doujun = (ZHI_ORDER.indexOf(ziDou) + ZHI_ORDER.indexOf(yearBranch)) % 12;
+  const m = (ZHI_ORDER.indexOf(palaceBranch) - doujun + 12) % 12;
+  return `${LUNAR_MONTH_NAMES[m]}月${STEMS[(TIGER_MONTH_STEM_START[yearStem] + m) % 10]}`;
+}
+
+// 均時差 (分鐘)，NOAA 近似公式
+function getEquationOfTime(d: Date): number {
+  const start = new Date(d.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((d.getTime() - start.getTime()) / 86400000) + 1;
+  const g = (2 * Math.PI / 365) * (dayOfYear - 1 + (d.getHours() - 12) / 24);
+  return 229.18 * (0.000075 + 0.001868 * Math.cos(g) - 0.032077 * Math.sin(g)
+    - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
+}
+
+// iztro 的星名與文墨天機用字不同時，以文墨天機為準
+const ADJECTIVE_RENAME: Record<string, string> = { '截路': '截空', '空亡': '副截' };
 
 export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
   let lunar: Lunar;
@@ -317,7 +348,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
   // 博士十二神 (祿存起博士，順逆同大限)
   const BOSHI_NAMES = ['博士', '力士', '青龍', '小耗', '將軍', '奏書', '飛廉', '喜神', '病符', '大耗', '伏兵', '官符'];
   // 歲前十二神 (年支起歲建，一律順行)
-  const SUIQIAN_NAMES = ['歲建', '晦氣', '喪門', '貫索', '官符', '小耗', '大耗', '龍德', '白虎', '天德', '吊客', '病符'];
+  const SUIQIAN_NAMES = ['歲建', '晦氣', '喪門', '貫索', '官符', '小耗', '歲破', '龍德', '白虎', '天德', '弔客', '病符'];
   // 將前十二神 (年支三合起將星，一律順行)
   const JIANGQIAN_NAMES = ['將星', '攀鞍', '歲驛', '息神', '華蓋', '劫煞', '災煞', '天煞', '指背', '咸池', '月煞', '亡神'];
   let jiangxingStart = 6; // 寅午戌：午
@@ -332,9 +363,10 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
   else if (['亥','卯','未'].includes(yearBranch)) smallLimitStart = 1;
   const smallLimitDir = input.gender === 'male' ? 1 : -1;
 
-  // 子斗 (斗君)：年支宮起正月逆數至生月，再起子時順數至生時
-  const doujunZhiIndex = ((yearZhiIndex - (lunarMonth - 1) + timeZhiIndex) % 12 + 12) % 12;
-  const doujunZhi = ZHI[doujunZhiIndex];
+  // 子斗 = 子年斗君：子宮起正月逆數至生月，再起子時順數至生時
+  // 任一流年的斗君 = 子斗 + 流年地支
+  const ziDouIndex = ((0 - (lunarMonth - 1) + timeZhiIndex) % 12 + 12) % 12;
+  const ziDouZhi = ZHI[ziDouIndex];
 
   const palaces: PalaceData[] = [];
 
@@ -466,9 +498,8 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     const startAge = fiveElem.number + decadalOffset * 10;
     const endAge = startAge + 9;
 
-    const lunarMonthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '臘'];
-    // 流月：斗君所在宮為正月，順行
-    const monthName = `${lunarMonthNames[(zhiIdx - doujunZhiIndex + 12) % 12]}月${stem}`;
+    // 流月：生年斗君所在宮為正月，順行
+    const monthName = getFlowMonthName(branch, ziDouZhi, yearStem, yearBranch);
 
     // 流年歲數：生年支所在宮為 1 歲，順行
     const flowYearsList = Array.from({ length: 7 }, (_, idx) => ((zhiIdx - yearZhiIndex + 12) % 12) + 1 + idx * 12);
@@ -504,16 +535,57 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     });
   }
 
+  // 亮度與雜曜改由 iztro 計算 (已對照文墨天機一致)
+  const hourIndex = input.hour === 23 ? 12 : Math.floor((input.hour + 1) / 2);
+  const iz = astro.bySolar(`${solar.getYear()}-${solar.getMonth()}-${solar.getDay()}`, hourIndex, input.gender === 'male' ? '男' : '女', true, 'zh-TW');
+  // 旬空、截空各佔兩宮：與年干同陰陽的地支為正，另一宮為副
+  const yearStemIdx = STEMS.indexOf(yearStem);
+  const xunHeadBranch = ((yearZhiIndex - yearStemIdx) % 12 + 12) % 12;
+  const xunkongPair = [zhiAt(xunHeadBranch + 10), zhiAt(xunHeadBranch + 11)];
+  const jiekongTable: Record<number, [number, number]> = { 0: [8, 9], 1: [6, 7], 2: [4, 5], 3: [2, 3], 4: [0, 1] };
+  const jiekongPair = jiekongTable[yearStemIdx % 5].map((x) => ZHI[x]);
+  const byPolarity = (pair: EarthlyBranch[]) =>
+    ZHI.indexOf(pair[0]) % 2 === yearStemIdx % 2 ? pair : [pair[1], pair[0]];
+  const [xunkongMain, xunkongSub] = byPolarity(xunkongPair);
+  const [jiekongMain, jiekongSub] = byPolarity(jiekongPair);
+
+  for (const p of palaces) {
+    const ip = iz.palaces.find((x) => x.earthlyBranch === p.branch);
+    if (!ip) continue;
+    const brightnessOf = new Map<string, string>();
+    [...ip.majorStars, ...ip.minorStars].forEach((s) => { if (s.brightness) brightnessOf.set(s.name, s.brightness); });
+    [...p.mainStars, ...p.luckyStars, ...p.badStars].forEach((s) => {
+      const b = brightnessOf.get(s.name);
+      if (b) s.brightness = b as Brightness;
+    });
+    if (ip.minorStars.some((s) => s.name === '天馬')) {
+      p.luckyStars.push({ id: `tianma-${p.branch}`, name: '天馬', type: 'lucky', brightness: brightnessOf.get('天馬') as Brightness | undefined, colorCategory: 'blue' });
+    }
+    const names = ip.adjectiveStars
+      .map((s) => ADJECTIVE_RENAME[s.name] || s.name)
+      .filter((n) => !['旬空', '截空', '副截', '副旬'].includes(n));
+    if (p.branch === jiekongMain) names.push('截空');
+    if (p.branch === jiekongSub) names.push('副截');
+    if (p.branch === xunkongMain) names.push('旬空');
+    if (p.branch === xunkongSub) names.push('副旬');
+    if (p.suiqian === '龍德') names.push('龍德');
+    if (p.jiangqian === '劫煞') names.push('劫煞');
+    // 大耗：年支對宮，陽支再順一宮、陰支再逆一宮
+    if (p.branch === zhiAt(yearZhiIndex + 6 + (yearZhiIndex % 2 === 0 ? 1 : -1))) names.push('大耗');
+    p.minorStars = names.map((n) => ({ id: `${n}-${p.branch}`, name: n, type: 'gradeB' }));
+  }
+
   const eightChar = lunar.getEightChar();
 
-  // 計算真太陽時 (-2 分鐘太陽時校正對照；尚未依出生地經度校正)
-  const tsDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), input.hour, input.minute - 2);
+  // 真太陽時 = 鐘錶時間 + 經度差 + 均時差 (預設東經 120 度、UTC+8)
+  const tsDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), input.hour, input.minute);
+  tsDate.setMinutes(tsDate.getMinutes() + Math.round(getEquationOfTime(tsDate) + (DEFAULT_LONGITUDE - 120) * 4));
   const pad2 = (n: number) => String(n).padStart(2, '0');
   const trueSolarBirth = `${tsDate.getFullYear()}-${pad2(tsDate.getMonth() + 1)}-${pad2(tsDate.getDate())} ${pad2(tsDate.getHours())}:${pad2(tsDate.getMinutes())}`;
 
   // 計算八字大運走勢卡片 (8步大運，依節氣精算起運)
   const dayStem = eightChar.getDay().charAt(0); // 日干 (如 庚)
-  const yun = eightChar.getYun(input.gender === 'male' ? 1 : 0);
+  const yun = eightChar.getYun(input.gender === 'male' ? 1 : 0, 2); // 流派 2：精算到分鐘
   const luckCycles: LuckCycleStep[] = yun.getDaYun().slice(1, 9).map((dy) => ({
     stemBranch: dy.getGanZhi(),
     tenGod: getTenGod(dayStem, dy.getGanZhi().charAt(0)),
@@ -558,10 +630,10 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       fiveElementNumber: fiveElem.number,
       masterStar: MASTER_STAR_MAP[mingBranch],
       bodyMasterStar: BODY_MASTER_MAP[yearBranch],
-      ziDou: doujunZhi,
+      ziDou: ziDouZhi,
       solarBirth: `${solar.getYear()}-${String(solar.getMonth()).padStart(2, '0')}-${String(solar.getDay()).padStart(2, '0')} ${String(input.hour).padStart(2, '0')}:${String(input.minute).padStart(2, '0')}`,
       trueSolarBirth,
-      lunarBirth: `${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()} ${timeBranch}時`,
+      lunarBirth: `${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()}日 ${timeBranch}時`,
       fourPillars: {
         year: eightChar.getYear(),
         month: eightChar.getMonth(),
@@ -578,111 +650,199 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       startAgeDetail: yunStartText,
       currentDecade: currentDecadeStr,
       currentFlowYear: currentFlowYearStr,
-      luckCycles
+      luckCycles,
+      lunarBirthYear: lunar.getYear()
     },
-    palaces
+    palaces,
+    birthInput: input
   };
 }
 
-export function updateChartFlowCycle(
-  chartData: ZiweiChartData,
-  targetYear: number,
-  targetDecadeKey?: string,
-  targetMonth?: string,
-  targetDay?: string,
-  targetHour?: string
-): ZiweiChartData {
-  const birthYear = parseInt(chartData.userInfo.solarBirth.split('-')[0]) || (targetYear - 30);
-  const nominalAge = Math.max(1, targetYear - birthYear + 1);
+// ===== 流運 (大限／流年／流月／流日／流時) =====
 
-  const stems: HeavenlyStem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
-  const branches: EarthlyBranch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+const LUCUN_BY_STEM: Record<HeavenlyStem, number> = { '甲': 2, '乙': 3, '丙': 5, '丁': 6, '戊': 5, '己': 6, '庚': 8, '辛': 9, '壬': 11, '癸': 0 };
+const KUIYUE_BY_STEM: Record<HeavenlyStem, [number, number]> = {
+  '甲': [1, 7], '戊': [1, 7], '庚': [1, 7], '乙': [0, 8], '己': [0, 8],
+  '丙': [11, 9], '丁': [11, 9], '辛': [6, 2], '壬': [3, 5], '癸': [3, 5]
+};
+const CHANG_BY_STEM: Record<HeavenlyStem, number> = { '甲': 5, '乙': 6, '丙': 8, '丁': 9, '戊': 8, '己': 9, '庚': 11, '辛': 0, '壬': 2, '癸': 3 };
+const QU_BY_STEM: Record<HeavenlyStem, number> = { '甲': 9, '乙': 8, '丙': 6, '丁': 5, '戊': 6, '己': 5, '庚': 3, '辛': 2, '壬': 0, '癸': 11 };
+// 五鼠遁：日干決定子時的時干
+const RAT_HOUR_STEM_START: Record<HeavenlyStem, number> = {
+  '甲': 0, '己': 0, '乙': 2, '庚': 2, '丙': 4, '辛': 4, '丁': 6, '壬': 6, '戊': 8, '癸': 8
+};
+const SHORT_NAMES = ['命', '兄', '夫', '子', '財', '疾', '遷', '友', '官', '田', '福', '父'];
+export const LUNAR_DAY_NAMES = [
+  '初一', '初二', '初三', '初四', '初五', '初六', '初七', '初八', '初九', '初十',
+  '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+  '廿一', '廿二', '廿三', '廿四', '廿五', '廿六', '廿七', '廿八', '廿九', '三十'
+];
+export const LUNAR_MONTH_LABELS = ['正月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+const zi = (i: number) => ZHI_ORDER[((i % 12) + 12) % 12];
 
-  const flowYearStemIdx = (targetYear - 4) % 10 < 0 ? ((targetYear - 4) % 10 + 10) % 10 : (targetYear - 4) % 10;
-  const flowYearBranchIdx = (targetYear - 4) % 12 < 0 ? ((targetYear - 4) % 12 + 12) % 12 : (targetYear - 4) % 12;
+// 大限流曜 (依大限宮干支)
+function getDecadalStars(stem: HeavenlyStem, branch: EarthlyBranch): Record<string, EarthlyBranch> {
+  const b = ZHI_ORDER.indexOf(branch);
+  const lu = LUCUN_BY_STEM[stem];
+  let ma = 8; // 寅午戌：申
+  if ([8, 0, 4].includes(b)) ma = 2;
+  else if ([5, 9, 1].includes(b)) ma = 11;
+  else if ([11, 3, 7].includes(b)) ma = 5;
+  const luan = (3 - b + 12) % 12;
+  return {
+    '大祿': zi(lu), '大羊': zi(lu + 1), '大陀': zi(lu - 1),
+    '大魁': zi(KUIYUE_BY_STEM[stem][0]), '大鉞': zi(KUIYUE_BY_STEM[stem][1]),
+    '大昌': zi(CHANG_BY_STEM[stem]), '大曲': zi(QU_BY_STEM[stem]),
+    '大馬': zi(ma), '大鸞': zi(luan), '大喜': zi(luan + 6),
+  };
+}
 
-  const flowYearStem = stems[flowYearStemIdx];
-  const flowYearBranch = branches[flowYearBranchIdx];
+function getLunarBirthYear(chart: ZiweiChartData): number {
+  return chart.userInfo.lunarBirthYear ?? (parseInt(chart.userInfo.solarBirth.split('-')[0]) || new Date().getFullYear());
+}
 
-  // 尋找大限宮位
-  let decadalPalace = chartData.palaces.find((p) => {
-    if (targetDecadeKey && targetDecadeKey !== 'child') {
-      return `${p.decadalRange[0]}-${p.decadalRange[1]}` === targetDecadeKey;
-    }
-    return nominalAge >= p.decadalRange[0] && nominalAge <= p.decadalRange[1];
-  });
-  if (!decadalPalace) decadalPalace = chartData.palaces[0];
+const yearGanZhi = (year: number) => ({
+  stem: STEMS[(((year - 4) % 10) + 10) % 10],
+  branch: ZHI_ORDER[(((year - 4) % 12) + 12) % 12],
+});
 
-  const decadalStem = decadalPalace.stem;
+// 大限選單清單 (依歲數排序)
+export function getDecadeList(chart: ZiweiChartData) {
+  return [...chart.palaces]
+    .sort((a, b) => a.decadalRange[0] - b.decadalRange[0])
+    .map((p) => ({ key: `${p.decadalRange[0]}-${p.decadalRange[1]}`, range: p.decadalRange, stem: p.stem, branch: p.branch }));
+}
 
-  const flowYearMutagens = FOUR_MUTAGENS_MAP[flowYearStem];
-  const decadalMutagens = FOUR_MUTAGENS_MAP[decadalStem];
+// 預設大限：包含目前虛歲者；還在童限時用第一個大限
+export function getDefaultDecadeKey(chart: ZiweiChartData): string {
+  const age = new Date().getFullYear() - getLunarBirthYear(chart) + 1;
+  const list = getDecadeList(chart);
+  return (list.find((d) => age >= d.range[0] && age <= d.range[1]) || list[0]).key;
+}
 
-  const shortNames = ['命', '兄', '夫', '子', '財', '疾', '遷', '友', '官', '田', '福', '父'];
+// 某個大限 (或童限) 內的十個流年
+export function getFlowYears(chart: ZiweiChartData, decadeKey: string) {
+  const birth = getLunarBirthYear(chart);
+  const list = getDecadeList(chart);
+  const [from, to] = decadeKey === 'child'
+    ? [1, list[0].range[0] - 1]
+    : (list.find((d) => d.key === decadeKey) || list[0]).range;
+  const years = [];
+  for (let age = from; age <= to; age++) {
+    const year = birth + age - 1;
+    years.push({ year, age, ...yearGanZhi(year) });
+  }
+  return years;
+}
 
-  const decadalBranchIdx = BRANCHES_ORDER.indexOf(decadalPalace.branch);
-  const flowYearBranchOrderIdx = BRANCHES_ORDER.indexOf(flowYearBranch);
+// 流年某月的天數 (農曆)；查不到就回 30
+export function getLunarMonthDayCount(year: number, month: number): number {
+  try {
+    return LunarMonth.fromYm(year, month)?.getDayCount() ?? 30;
+  } catch {
+    return 30;
+  }
+}
 
-  const updatedPalaces = chartData.palaces.map((palace) => {
-    const pIdx = BRANCHES_ORDER.indexOf(palace.branch);
+export function applyFlowSelection(base: ZiweiChartData, sel: FlowSelection): ZiweiChartData {
+  const ziDouIdx = ZHI_ORDER.indexOf(base.userInfo.ziDou);
+  const infoParts: string[] = [];
+  const levels: { level: FlowLevel; branch: number; stem: HeavenlyStem }[] = [];
 
-    const dOffset = (decadalBranchIdx - pIdx + 12) % 12;
-    const dynamicDecadalName = `大${shortNames[dOffset]}`;
+  // 大限
+  const decade = sel.decadeKey && sel.decadeKey !== 'child'
+    ? base.palaces.find((p) => `${p.decadalRange[0]}-${p.decadalRange[1]}` === sel.decadeKey)
+    : undefined;
+  if (decade) {
+    levels.push({ level: '大', branch: ZHI_ORDER.indexOf(decade.branch), stem: decade.stem });
+    infoParts.push(`${decade.stem}${decade.branch}大限 (${decade.decadalRange[0]}~${decade.decadalRange[1]}歲)`);
+  } else if (sel.decadeKey === 'child') {
+    infoParts.push('童限');
+  }
 
-    const fOffset = (flowYearBranchOrderIdx - pIdx + 12) % 12;
-    const dynamicFlowYearName = `年${shortNames[fOffset]}`;
+  // 流年 → 流月 → 流日 → 流時 (每一層都從上一層推下來)
+  if (sel.year !== null) {
+    const y = yearGanZhi(sel.year);
+    const yearBranch = ZHI_ORDER.indexOf(y.branch);
+    levels.push({ level: '年', branch: yearBranch, stem: y.stem });
+    infoParts.push(`${sel.year} ${y.stem}${y.branch}年 (虛歲${sel.year - getLunarBirthYear(base) + 1})`);
 
-    const flowMutagensList: { starName: string; mutagen: Mutagen; label: string }[] = [];
+    if (sel.month !== null) {
+      const monthBranch = (ziDouIdx + yearBranch + sel.month - 1) % 12; // 流年斗君起正月
+      const monthStem = STEMS[(TIGER_MONTH_STEM_START[y.stem] + sel.month - 1) % 10];
+      levels.push({ level: '月', branch: monthBranch, stem: monthStem });
+      infoParts.push(`${LUNAR_MONTH_LABELS[sel.month - 1]} ${monthStem}${ZHI_ORDER[(sel.month + 1) % 12]}月`);
 
-    // 大限四化 (大祿, 大權, 大科, 大忌)
-    if (decadalMutagens) {
-      for (const [m, sName] of Object.entries(decadalMutagens)) {
-        const hasStar = [...palace.mainStars, ...palace.luckyStars].some((s) => s.name === sName);
-        if (hasStar) {
-          flowMutagensList.push({ starName: sName, mutagen: m as Mutagen, label: `大${m}` });
+      if (sel.day !== null) {
+        const dayBranch = (monthBranch + sel.day - 1) % 12; // 流月命宮起初一
+        let dayStem: HeavenlyStem | null = null;
+        let dayZhi = '';
+        try {
+          const d = Lunar.fromYmd(sel.year, sel.month, sel.day);
+          dayStem = d.getDayGan() as HeavenlyStem;
+          dayZhi = d.getDayZhi();
+        } catch {
+          dayStem = null;
+        }
+        if (dayStem) {
+          levels.push({ level: '日', branch: dayBranch, stem: dayStem });
+          infoParts.push(`${LUNAR_DAY_NAMES[sel.day - 1]} ${dayStem}${dayZhi}日`);
+
+          if (sel.hour !== null) {
+            const hourBranch = (dayBranch + sel.hour) % 12; // 流日命宮起子時
+            const hourStem = STEMS[(RAT_HOUR_STEM_START[dayStem] + sel.hour) % 10];
+            levels.push({ level: '時', branch: hourBranch, stem: hourStem });
+            infoParts.push(`${hourStem}${ZHI_ORDER[sel.hour]}時`);
+          }
         }
       }
     }
+  }
 
-    // 流年四化 (流祿, 流權, 流科, 流忌)
-    if (flowYearMutagens) {
-      for (const [m, sName] of Object.entries(flowYearMutagens)) {
-        const hasStar = [...palace.mainStars, ...palace.luckyStars].some((s) => s.name === sName);
-        if (hasStar) {
-          flowMutagensList.push({ starName: sName, mutagen: m as Mutagen, label: `流${m}` });
-        }
+  const deepest = levels.filter((l) => l.level !== '大').pop();
+  const decadeLevel = levels.find((l) => l.level === '大');
+  const decadalStarMap = decade ? getDecadalStars(decade.stem, decade.branch) : null;
+  const birthYear = getLunarBirthYear(base);
+
+  const palaces = base.palaces.map((palace) => {
+    const pIdx = ZHI_ORDER.indexOf(palace.branch);
+    const stars = [...palace.mainStars, ...palace.luckyStars];
+    const flowMutagens: NonNullable<PalaceData['flowMutagens']> = [];
+    // 只標大限與最細一層的四化，避免同一顆星堆太多標籤
+    for (const l of [decadeLevel, deepest]) {
+      if (!l) continue;
+      for (const [m, starName] of Object.entries(FOUR_MUTAGENS_MAP[l.stem])) {
+        if (stars.some((s) => s.name === starName)) flowMutagens.push({ starName, mutagen: m as Mutagen, level: l.level });
+      }
+    }
+
+    let decadeYearInfo: PalaceData['decadeYearInfo'];
+    if (decade) {
+      for (let age = decade.decadalRange[0]; age <= decade.decadalRange[1]; age++) {
+        const year = birthYear + age - 1;
+        if (yearGanZhi(year).branch === palace.branch) decadeYearInfo = { year, age };
       }
     }
 
     return {
       ...palace,
-      isCurrentFlowYearPalace: palace.branch === flowYearBranch,
-      isCurrentDecadalPalace: palace.branch === decadalPalace?.branch,
-      dynamicDecadalName,
-      dynamicFlowYearName,
-      currentSelectedAgeInfo: {
-        age: nominalAge,
-        year: targetYear,
-        decadalPalaceName: dynamicDecadalName,
-      },
-      flowMutagens: flowMutagensList,
+      lunarMonthName: sel.year !== null
+        ? getFlowMonthName(palace.branch, base.userInfo.ziDou, yearGanZhi(sel.year).stem, yearGanZhi(sel.year).branch)
+        : palace.lunarMonthName,
+      dynamicDecadalName: decadeLevel ? `大${SHORT_NAMES[(decadeLevel.branch - pIdx + 12) % 12]}` : undefined,
+      decadalStars: decadalStarMap ? Object.keys(decadalStarMap).filter((k) => decadalStarMap[k] === palace.branch) : undefined,
+      decadeYearInfo,
+      flowLevelName: deepest ? `${deepest.level}${SHORT_NAMES[(deepest.branch - pIdx + 12) % 12]}` : undefined,
+      flowMutagens,
     };
   });
 
-  const activeFlowCycleInfo = `當前演算：${targetYear} ${flowYearStem}${flowYearBranch}流年 (虛歲${nominalAge}歲) • ${decadalStem}${decadalPalace.branch}大限 (${decadalPalace.decadalRange[0]}~${decadalPalace.decadalRange[1]}歲)${
-    targetMonth ? ` • ${targetMonth}` : ''
-  }${targetDay ? ` • ${targetDay}` : ''}${targetHour ? ` • ${targetHour}` : ''}`;
-
   return {
-    ...chartData,
+    ...base,
     userInfo: {
-      ...chartData.userInfo,
-      currentFlowYear: `${targetYear} ${flowYearStem}${flowYearBranch}年 虛歲${nominalAge}歲`,
-      currentDecade: `${decadalPalace.decadalRange[0]}-${decadalPalace.decadalRange[1]} 歲`,
-      activeFlowCycleInfo,
+      ...base.userInfo,
+      activeFlowCycleInfo: infoParts.length ? infoParts.join(' • ') : undefined,
     },
-    palaces: updatedPalaces,
+    palaces,
   };
 }
-
-
