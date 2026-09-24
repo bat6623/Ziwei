@@ -61,11 +61,19 @@ export interface PalaceData {
   smallLimitYears: number[];
   lunarMonthName: string;
 
+  // 流年與小限歲數序列 (圖 2)
+  flowYearsList?: number[];
+  
   // 動態流運標籤與四化
   isCurrentFlowYearPalace?: boolean;
   isCurrentDecadalPalace?: boolean;
   dynamicDecadalName?: string;
   dynamicFlowYearName?: string;
+  currentSelectedAgeInfo?: {
+    age: number;
+    year: number;
+    decadalPalaceName: string;
+  };
   flowMutagens?: { starName: string; mutagen: Mutagen; label: string }[];
 }
 

@@ -396,6 +396,11 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     const lunarMonthNames = ['正', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '臘'];
     const monthName = `${lunarMonthNames[i % 12]}月${stem}`;
 
+    const flowYearsList = Array.from({ length: 7 }, (_, idx) => {
+      const startAge = ((i - yearZhiIndex + 12) % 12) + 1 + idx * 12;
+      return startAge;
+    });
+
     palaces.push({
       index: i,
       branch,
@@ -419,6 +424,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       decadalRange: [startAge, endAge],
       decadalStemBranch: `${stem}${branch}`,
       smallLimitYears: [i + 1, i + 13, i + 25, i + 37, i + 49, i + 61, i + 73],
+      flowYearsList,
       lunarMonthName: monthName
     });
   }
@@ -601,6 +607,11 @@ export function updateChartFlowCycle(
       isCurrentDecadalPalace: palace.branch === decadalPalace?.branch,
       dynamicDecadalName,
       dynamicFlowYearName,
+      currentSelectedAgeInfo: {
+        age: nominalAge,
+        year: targetYear,
+        decadalPalaceName: dynamicDecadalName,
+      },
       flowMutagens: flowMutagensList,
     };
   });
@@ -620,4 +631,5 @@ export function updateChartFlowCycle(
     palaces: updatedPalaces,
   };
 }
+
 

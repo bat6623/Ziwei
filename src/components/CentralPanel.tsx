@@ -100,6 +100,40 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, selectedPalace
         <div className="text-center text-[10px] text-amber-800 font-semibold mt-0.5">
           {userInfo.startAgeDetail || userInfo.startAgeNotice}
         </div>
+
+        {/* 圖 2 經典文墨天機微調控制列 */}
+        <div className="flex justify-center items-center gap-1 mt-1 pt-1 border-t border-amber-200/60 font-mono">
+          <button
+            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer"
+            title="增加一日"
+          >
+            日↑
+          </button>
+          <button
+            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer"
+            title="減少一日"
+          >
+            日↓
+          </button>
+          <button
+            className="bg-slate-100 hover:bg-slate-200 text-slate-900 text-[10px] font-black px-2 py-0.5 rounded border border-slate-400 shadow-2xs cursor-pointer"
+            title="盤面視圖"
+          >
+            天盤▽
+          </button>
+          <button
+            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer"
+            title="增加一時辰"
+          >
+            時↑
+          </button>
+          <button
+            className="bg-white hover:bg-slate-100 text-slate-800 text-[10px] font-bold px-1.5 py-0.5 rounded border border-slate-300 shadow-2xs cursor-pointer"
+            title="減少一時辰"
+          >
+            時↓
+          </button>
+        </div>
       </div>
 
       {/* 八字大運走勢圖卡片 (8步大運) */}

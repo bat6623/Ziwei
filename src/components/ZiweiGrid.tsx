@@ -205,13 +205,13 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect
                 <circle cx={(line.x1 + line.x2) / 2} cy={(line.y1 + line.y2) / 2} r="10" fill="#ffffff" stroke={line.color} strokeWidth="1.5" />
                 <text
                   x={(line.x1 + line.x2) / 2}
-                  y={(line.y1 + line.y2) / 2 + 3}
+                  y={(line.y1 + line.y2) / 2 + 3.5}
                   textAnchor="middle"
                   fill={line.color}
-                  fontSize="9"
-                  fontWeight="bold"
+                  fontSize="10"
+                  fontWeight="900"
                 >
-                  {line.type.length === 1 ? line.type : '線'}
+                  {line.type === '祿' ? 'A' : line.type === '權' ? 'B' : line.type === '科' ? 'C' : line.type === '忌' ? 'D' : '線'}
                 </text>
               </g>
             ))}
