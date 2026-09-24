@@ -5,7 +5,7 @@ import { CentralPanel } from './CentralPanel';
 
 interface ZiweiGridProps {
   data: ZiweiChartData;
-  onPalaceSelect?: (palace: PalaceData) => void;
+  onPalaceSelect?: (palace: PalaceData | null) => void;
 }
 
 export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) => {
@@ -63,9 +63,15 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
     return data.palaces.find((p) => p.branch === branch) || data.palaces[0];
   };
 
+  // 再次點擊相同宮位時取消選中與連線
   const handleSelect = (palace: PalaceData) => {
-    setSelectedPalace(palace);
-    if (onPalaceSelect) onPalaceSelect(palace);
+    if (selectedPalace?.branch === palace.branch) {
+      setSelectedPalace(null);
+      if (onPalaceSelect) onPalaceSelect(null);
+    } else {
+      setSelectedPalace(palace);
+      if (onPalaceSelect) onPalaceSelect(palace);
+    }
   };
 
   return (
