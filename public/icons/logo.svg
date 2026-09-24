@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 簡化版 LOGO：深紫底、金色十二宮圓環、中央四角星 -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#4a2f8c"/>
+      <stop offset="1" stop-color="#1c1340"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#fff3c4" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#e8c47a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fffaf0"/>
+      <stop offset="1" stop-color="#f0cf85"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- 十二宮圓環 -->
+  <circle cx="256" cy="256" r="186" fill="none" stroke="#e8c47a" stroke-width="12"/>
+  <circle cx="256" cy="256" r="136" fill="none" stroke="#e8c47a" stroke-width="5" stroke-opacity="0.55"/>
+  <g stroke="#e8c47a" stroke-width="6" stroke-linecap="round" stroke-opacity="0.8">
+    <line x1="256" y1="70" x2="256" y2="120"/>
+    <line x1="256" y1="392" x2="256" y2="442"/>
+    <line x1="70" y1="256" x2="120" y2="256"/>
+    <line x1="392" y1="256" x2="442" y2="256"/>
+    <line x1="349" y1="95" x2="324" y2="138"/>
+    <line x1="417" y1="163" x2="374" y2="188"/>
+    <line x1="417" y1="349" x2="374" y2="324"/>
+    <line x1="349" y1="417" x2="324" y2="374"/>
+    <line x1="163" y1="417" x2="188" y2="374"/>
+    <line x1="95" y1="349" x2="138" y2="324"/>
+    <line x1="95" y1="163" x2="138" y2="188"/>
+    <line x1="163" y1="95" x2="188" y2="138"/>
+  </g>
+  <!-- 中央發光的四角星 -->
+  <circle cx="256" cy="256" r="96" fill="url(#glow)"/>
+  <path d="M256 128 L276 236 L384 256 L276 276 L256 384 L236 276 L128 256 L236 236 Z" fill="url(#star)"/>
+</svg>

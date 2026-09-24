@@ -119,8 +119,8 @@ export function App() {
       {/* 頂部導覽列：炭灰膠囊 */}
       <header className="sticky top-0 z-40 px-2 sm:px-4 pt-2 sm:pt-3">
         <div className="dark island max-w-6xl mx-auto h-14 sm:h-16 rounded-full bg-card text-label flex items-center gap-1.5 sm:gap-2 pl-2 pr-2 shadow-[0_8px_24px_rgba(0,0,0,0.18)]">
-          <img src={`${import.meta.env.BASE_URL}icons/logo-160.png`} alt="紫微斗數" width={44} height={44} className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover" />
-          <span className="hidden md:block px-2 text-[15px] text-label2 whitespace-nowrap">紫微斗數</span>
+          <img src={`${import.meta.env.BASE_URL}icons/logo.svg`} alt="紫微斗數" width={44} height={44} className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-full object-cover" />
+          <span className="pl-1 sm:px-2 text-[15px] sm:text-[17px] text-label whitespace-nowrap">紫微斗數</span>
 
           {/* 模式切換 (桌機) */}
           <nav className="hidden sm:flex items-center gap-1 ml-1" aria-label="盤面模式">

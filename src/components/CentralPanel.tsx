@@ -30,7 +30,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
   const { userInfo } = data;
   const isFeixing = mode === 'feixing';
 
-  const shiftBtn = 'h-7 sm:h-9 px-2 sm:px-3.5 rounded-full border border-separator text-label hover:bg-fill active:bg-fill2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+  const shiftBtn = 'h-7 sm:h-9 px-2 sm:px-3.5 whitespace-nowrap rounded-full border border-separator text-label hover:bg-fill active:bg-fill2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
     <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-label">
@@ -88,7 +88,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
           <div className="flex justify-center gap-1 text-[10px] sm:text-sm">
             <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('day', 1)} title="生日往後一天">日↑</button>
             <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('day', -1)} title="生日往前一天">日↓</button>
-            <button type="button" className={shiftBtn} disabled title="天盤／地盤／人盤切換尚未開放">天盤▽</button>
+            <button type="button" className={`hidden sm:inline-block ${shiftBtn}`} disabled title="天盤／地盤／人盤切換尚未開放">天盤▽</button>
             <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('hour', 1)} title="出生時間往後一個時辰">時↑</button>
             <button type="button" className={shiftBtn} disabled={!onShift} onClick={() => onShift?.('hour', -1)} title="出生時間往前一個時辰">時↓</button>
           </div>
