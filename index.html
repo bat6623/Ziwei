@@ -1,12 +1,24 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-Hant">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/Ziwei/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ziwei</title>
-    <script type="module" crossorigin src="/Ziwei/assets/index-gmFLi51G.js"></script>
-    <link rel="stylesheet" crossorigin href="/Ziwei/assets/index-BqUppt8P.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f2f2f7" />
+    <title>紫微斗數神算命盤</title>
+    <script>
+      // 在畫面出現前先套用深淺色，避免深色模式閃一下白畫面
+      (function () {
+        try {
+          var pref = localStorage.getItem('ziwei_theme') || 'system';
+          var dark = pref === 'dark' || (pref === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (dark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/Ziwei/assets/index-DEbCCOme.js"></script>
+    <link rel="stylesheet" crossorigin href="/Ziwei/assets/index-CMUQB7rC.css">
   </head>
   <body>
     <div id="root"></div>
