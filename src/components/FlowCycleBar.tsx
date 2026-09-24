@@ -4,6 +4,7 @@ import {
   getDecadeList,
   getDefaultDecadeKey,
   getFlowYears,
+  getThisYearFlow,
   getLunarMonthDayCount,
   LUNAR_DAY_NAMES,
   LUNAR_MONTH_LABELS,
@@ -63,10 +64,44 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
   const pickHour = (hour: number) =>
     onChange({ ...selection, hour: selection.hour === hour ? null : hour });
 
+  const thisYear = getThisYearFlow(data);
+  const isThisYear = !!thisYear && selection.year === thisYear.year && selection.decadeKey === thisYear.decadeKey && selection.month === null;
+  const hasSelection = selection.year !== null || (mode === 'sanhe' && selection.decadeKey !== null);
+  const pickThisYear = () => {
+    if (thisYear) onChange({ decadeKey: thisYear.decadeKey, year: thisYear.year, month: null, day: null, hour: null });
+  };
+  const clearAll = () => onChange({ decadeKey: null, year: null, month: null, day: null, hour: null });
+
+  const pill = 'h-9 px-4 rounded-full text-[13px] sm:text-[14px] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+
   const scrollRow = 'flex-1 min-w-0 flex gap-0.5 overflow-x-auto no-scrollbar p-1 rounded-full bg-grouped';
 
   return (
     <div className="w-full rounded-[28px] bg-card p-3 sm:p-4 text-[11px] sm:text-[13px] my-4 font-apple select-none space-y-2">
+      {/* 快速選擇 */}
+      <div className="flex items-center gap-2">
+        <span className="flex-1 text-[15px] sm:text-[17px] text-label">流運</span>
+        <button
+          type="button"
+          onClick={clearAll}
+          disabled={!hasSelection}
+          title={hasSelection ? '取消選擇，回到本命盤' : '目前沒有選流運'}
+          className={`${pill} border border-separator text-label enabled:hover:bg-fill enabled:active:bg-fill2`}
+        >
+          回到本命
+        </button>
+        <button
+          type="button"
+          onClick={pickThisYear}
+          disabled={!thisYear}
+          aria-pressed={isThisYear}
+          title={thisYear ? `選到 ${thisYear.year} 年（虛歲 ${thisYear.age}）` : '今年不在這張命盤的大限範圍內'}
+          className={`${pill} bg-accent text-on-accent font-medium enabled:hover:brightness-95 enabled:active:brightness-90`}
+        >
+          今年{thisYear ? ` ${thisYear.year}` : ''}
+        </button>
+      </div>
+
       {/* 大限 */}
       <div className="flex items-center gap-2">
         <RowLabel>大限</RowLabel>

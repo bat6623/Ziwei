@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import type { BirthInput, Gender } from '../types/ziwei';
 import { Clock, X } from 'lucide-react';
 import { LunarMonth } from 'lunar-javascript';
+import { getTrueSolarTime } from '../utils/ziweiEngine';
+import { ALL_PLACES, PLACE_GROUPS, loadPlacePref, savePlacePref } from '../utils/places';
 
 interface InputModalProps {
   isOpen: boolean;
@@ -25,6 +27,11 @@ const ZODIAC_HOURS = [
   { name: '亥時', range: '21:00 - 23:00', hour: 22, minHour: 21, maxHour: 22 },
 ];
 
+const CUSTOM = '__custom';
+
+// 小時 → 地支時辰 (23 點算子時)
+const zodiacOf = (h: number) => ZODIAC_HOURS[Math.floor(((h + 1) % 24) / 2)].name;
+
 export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const now = new Date();
   const [name, setName] = useState<string>('');
@@ -36,6 +43,13 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
   const [hour, setHour] = useState<number>(now.getHours());
   const [minute, setMinute] = useState<number>(now.getMinutes());
   const [error, setError] = useState<string>('');
+  // 出生地：預設帶上次選的
+  const [pref] = useState(loadPlacePref);
+  const [placeSel, setPlaceSel] = useState<string>(() =>
+    pref.place && ALL_PLACES.some((p) => p.name === pref.place) ? pref.place : pref.longitude !== undefined ? CUSTOM : '',
+  );
+  const [customLon, setCustomLon] = useState<string>(pref.longitude !== undefined && !pref.place ? String(pref.longitude) : '');
+  const [useTrueSolarHour, setUseTrueSolarHour] = useState<boolean>(pref.useTrueSolarHour);
 
   if (!isOpen) return null;
 
@@ -85,12 +99,34 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
 
   const currentZodiac = getCurrentZodiacHourName();
 
+  // 出生地換成經度；自訂經度要在合理範圍內
+  const customLonNum = Number(customLon);
+  const customLonValid = customLon.trim() !== '' && Number.isFinite(customLonNum) && customLonNum >= 73 && customLonNum <= 135;
+  const place = placeSel && placeSel !== CUSTOM ? ALL_PLACES.find((p) => p.name === placeSel) : undefined;
+  const longitude = place ? place.longitude : placeSel === CUSTOM && customLonValid ? customLonNum : undefined;
+
+  // 即時預覽真太陽時 (日期不存在時算不出來就不顯示)
+  let preview: { time: string; zodiac: string } | null = null;
+  try {
+    const ts = getTrueSolarTime({ name, gender, isLunar, year, month, day, hour, minute, longitude });
+    if (!Number.isNaN(ts.getTime())) {
+      preview = {
+        time: `${String(ts.getHours()).padStart(2, '0')}:${String(ts.getMinutes()).padStart(2, '0')}`,
+        zodiac: zodiacOf(ts.getHours()),
+      };
+    }
+  } catch {
+    preview = null;
+  }
+  const zodiacChanges = preview !== null && preview.zodiac !== currentZodiac;
+
   // 檢查日期時間是否真的存在（例如國曆 2/30、農曆小月的三十日）
   const validate = (): string => {
     if (![year, month, day, hour, minute].every(Number.isInteger)) return '請填寫完整的日期與時間';
     if (year < 1900 || year > 2100) return '年份請輸入 1900 到 2100 之間';
     if (month < 1 || month > 12) return '月份請輸入 1 到 12';
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return '時間格式不正確';
+    if (placeSel === CUSTOM && !customLonValid) return '自訂經度請輸入 73 到 135 之間的數字（例如台北 121.56）';
     if (isLunar) {
       const dayCount = LunarMonth.fromYm(year, month)?.getDayCount() ?? 30;
       if (day < 1 || day > dayCount) return `農曆 ${year} 年 ${month} 月只有 ${dayCount} 天`;
@@ -106,7 +142,12 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
     const msg = validate();
     setError(msg);
     if (msg) return;
+    const placeName = place?.name ?? (longitude !== undefined ? `東經${longitude}°` : undefined);
+    savePlacePref({ place: place?.name, longitude, useTrueSolarHour });
     onSubmit({
+      place: placeName,
+      longitude,
+      useTrueSolarHour,
       name: name.trim() || '未命名',
       gender,
       isLunar,
@@ -239,6 +280,67 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* 出生地點：算真太陽時用 */}
+          <div>
+            <label className={label} htmlFor="birth-place">出生地點</label>
+            <div className={`grid gap-2 ${placeSel === CUSTOM ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              <select
+                id="birth-place"
+                value={placeSel}
+                onChange={(e) => setPlaceSel(e.target.value)}
+                className={`${field} appearance-none cursor-pointer`}
+              >
+                <option value="">不指定（以東經 120° 計算）</option>
+                {PLACE_GROUPS.map((g) => (
+                  <optgroup key={g.label} label={g.label}>
+                    {g.places.map((p) => <option key={p.name} value={p.name}>{p.name}</option>)}
+                  </optgroup>
+                ))}
+                <option value={CUSTOM}>自訂經度…</option>
+              </select>
+              {placeSel === CUSTOM && (
+                <label className="relative">
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.01"
+                    value={customLon}
+                    onChange={(e) => setCustomLon(e.target.value)}
+                    placeholder="121.56"
+                    aria-label="東經度數"
+                    className={numField}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] text-label3 pointer-events-none">°E</span>
+                </label>
+              )}
+            </div>
+
+            <label className="mt-2 flex items-center gap-3 px-4 py-3 rounded-[20px] bg-grouped cursor-pointer">
+              <span className="flex-1 min-w-0">
+                <span className="block text-[15px] text-label">時辰改用真太陽時</span>
+                <span className="block text-[12px] text-label3">
+                  {preview
+                    ? `真太陽時 ${preview.time}・${preview.zodiac}${zodiacChanges ? `（跟鐘錶時間的${currentZodiac}不同）` : ''}`
+                    : '日期填完整後會顯示真太陽時'}
+                </span>
+              </span>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={useTrueSolarHour}
+                onChange={(e) => setUseTrueSolarHour(e.target.checked)}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden
+                className="relative shrink-0 w-12 h-7 rounded-full bg-fill2 transition-colors peer-checked:bg-ok peer-focus-visible:ring-2 peer-focus-visible:ring-accent after:absolute after:top-0.5 after:left-0.5 after:w-6 after:h-6 after:rounded-full after:bg-white after:shadow after:transition-transform peer-checked:after:translate-x-5"
+              />
+            </label>
+            {zodiacChanges && !useTrueSolarHour && (
+              <p className="mt-1.5 pl-4 text-[12px] text-danger">出生時間靠近時辰交界，兩種算法會排出不同的盤，請確認要用哪一種</p>
+            )}
           </div>
 
           {error && (

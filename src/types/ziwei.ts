@@ -108,6 +108,12 @@ export interface BirthInput {
   hour: number;
   minute: number;
   isLeapMonth?: boolean;
+  /** 出生地名稱 (只用來顯示)；沒填代表用預設的東經 120 度 */
+  place?: string;
+  /** 出生地經度，算真太陽時用 */
+  longitude?: number;
+  /** true：時辰改用真太陽時決定 (預設用鐘錶時間) */
+  useTrueSolarHour?: boolean;
 }
 
 export interface ZiweiChartData {

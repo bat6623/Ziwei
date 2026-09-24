@@ -47,9 +47,13 @@ export function loadRecords(): SavedRecord[] {
   }
 }
 
+/** 紀錄有變動時發出的事件，讓畫面上方的「最近命盤」跟著更新 */
+export const RECORDS_CHANGED = 'ziwei-records-changed';
+
 export function saveRecords(records: SavedRecord[]): boolean {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(records));
+    window.dispatchEvent(new Event(RECORDS_CHANGED));
     return true;
   } catch {
     return false;

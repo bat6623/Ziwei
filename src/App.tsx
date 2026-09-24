@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { calculateZiweiChart, applyFlowSelection, getDecadeList } from './utils/ziweiEngine';
+import { calculateZiweiChart, applyFlowSelection, getDefaultDecadeKey } from './utils/ziweiEngine';
 import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
 import { getBirthInput, type SavedRecord } from './utils/records';
 import { APP_VERSION, BUILD_TIME } from './utils/appVersion';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
+import { RecentCharts } from './components/RecentCharts';
 import { DataStorageManager } from './components/DataStorageManager';
 import { FlowCycleBar } from './components/FlowCycleBar';
 import { BottomControlBar } from './components/BottomControlBar';
@@ -59,9 +60,9 @@ export function App() {
 
   // 頁面切換 Tab (飛星 | 三合 | 四化)
   const [tabMode, setTabMode] = useState<ChartTabMode>('sanhe');
-  // 飛星、四化盤照文墨天機：一定帶著大限 (沒選時預設命宮那一個大限)，宮位下方才有大限宮名與流年歲數
+  // 飛星、四化盤照文墨天機：一定帶著大限 (沒選時預設目前歲數所在的大限)，宮位下方才有大限宮名與流年歲數
   const effectiveSel = useMemo<FlowSelection>(
-    () => (tabMode !== 'sanhe' && !flowSel.decadeKey ? { ...flowSel, decadeKey: getDecadeList(baseChart)[0].key } : flowSel),
+    () => (tabMode !== 'sanhe' && !flowSel.decadeKey ? { ...flowSel, decadeKey: getDefaultDecadeKey(baseChart) } : flowSel),
     [tabMode, flowSel, baseChart],
   );
   const chartData = useMemo(() => applyFlowSelection(baseChart, effectiveSel), [baseChart, effectiveSel]);
@@ -174,7 +175,10 @@ export function App() {
             {[
               ['國曆', userInfo.solarBirth],
               ['農曆', userInfo.lunarBirth],
-              ['真太陽時', userInfo.trueSolarBirth],
+              [
+                `真太陽時${baseChart.birthInput?.place ? `（${baseChart.birthInput.place}）` : ''}`,
+                `${userInfo.trueSolarBirth}${baseChart.birthInput?.useTrueSolarHour ? ' 依此排時辰' : ''}`,
+              ],
               ['命主／身主', `${userInfo.masterStar}／${userInfo.bodyMasterStar}`],
             ].map(([k, v]) => (
               <div key={k} className="min-w-0">
@@ -183,6 +187,8 @@ export function App() {
               </div>
             ))}
           </dl>
+
+          <RecentCharts currentId={baseChart.id} onLoadRecord={handleLoadRecord} />
 
           {/* 模式提示 */}
           <div className="mt-6 flex items-center gap-3">

@@ -78,7 +78,8 @@ const isValidRecord = (r: unknown): r is SavedRecord => {
   const b = x?.birthInput;
   return !!x && typeof x.id === 'string' && !!b
     && [b.year, b.month, b.day, b.hour, b.minute].every((n) => Number.isInteger(n))
-    && (b.gender === 'male' || b.gender === 'female');
+    && (b.gender === 'male' || b.gender === 'female')
+    && (b.longitude === undefined || (typeof b.longitude === 'number' && Number.isFinite(b.longitude)));
 };
 
 /** 讀取紀錄檔；接受本工具匯出的格式、單純的清單，以及舊版存整張命盤的格式 */

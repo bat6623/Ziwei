@@ -176,10 +176,45 @@ function getEquationOfTime(d: Date): number {
     - 0.014615 * Math.cos(2 * g) - 0.040849 * Math.sin(2 * g));
 }
 
+/**
+ * 真太陽時 = 鐘錶時間 + 經度差 (每度 4 分鐘，以東經 120 度 / UTC+8 為準) + 均時差
+ * 回傳的 Date 秒數保留，顯示時直接捨去 (跟文墨天機一致：07:10 → 07:06)
+ */
+export function getTrueSolarTime(input: BirthInput): Date {
+  let y = input.year, m = input.month, d = input.day;
+  if (input.isLunar) {
+    const s = Lunar.fromYmdHms(input.year, input.month, input.day, input.hour, input.minute, 0).getSolar();
+    y = s.getYear(); m = s.getMonth(); d = s.getDay();
+  }
+  const clock = new Date(y, m - 1, d, input.hour, input.minute);
+  const lon = input.longitude ?? DEFAULT_LONGITUDE;
+  return new Date(clock.getTime() + Math.round((getEquationOfTime(clock) + (lon - 120) * 4) * 60) * 1000);
+}
+
+const fmtDateTime = (d: Date) => {
+  const p2 = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+};
+
 // iztro 的星名與文墨天機用字不同時，以文墨天機為準
 const ADJECTIVE_RENAME: Record<string, string> = { '截路': '截空', '空亡': '副截' };
 
 export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
+  // 時辰改用真太陽時：先換算成真太陽時的國曆日期時間再排盤，畫面上仍顯示原本的鐘錶時間
+  if (input.useTrueSolarHour) {
+    const ts = getTrueSolarTime(input);
+    const clockChart = calculateZiweiChart({ ...input, useTrueSolarHour: false });
+    const chart = calculateZiweiChart({
+      ...input, isLunar: false, useTrueSolarHour: false,
+      year: ts.getFullYear(), month: ts.getMonth() + 1, day: ts.getDate(), hour: ts.getHours(), minute: ts.getMinutes(),
+    });
+    return {
+      ...chart,
+      userInfo: { ...chart.userInfo, solarBirth: clockChart.userInfo.solarBirth, trueSolarBirth: fmtDateTime(ts) },
+      birthInput: input,
+    };
+  }
+
   let lunar: Lunar;
   let solar: Solar;
 
@@ -577,11 +612,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
 
   const eightChar = lunar.getEightChar();
 
-  // 真太陽時 = 鐘錶時間 + 經度差 + 均時差 (預設東經 120 度、UTC+8)
-  const tsDate = new Date(solar.getYear(), solar.getMonth() - 1, solar.getDay(), input.hour, input.minute);
-  tsDate.setMinutes(tsDate.getMinutes() + Math.round(getEquationOfTime(tsDate) + (DEFAULT_LONGITUDE - 120) * 4));
-  const pad2 = (n: number) => String(n).padStart(2, '0');
-  const trueSolarBirth = `${tsDate.getFullYear()}-${pad2(tsDate.getMonth() + 1)}-${pad2(tsDate.getDate())} ${pad2(tsDate.getHours())}:${pad2(tsDate.getMinutes())}`;
+  const trueSolarBirth = fmtDateTime(getTrueSolarTime(input));
 
   // 計算八字大運走勢卡片 (8步大運，依節氣精算起運)
   const dayStem = eightChar.getDay().charAt(0); // 日干 (如 庚)
@@ -642,7 +673,8 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       },
       nonTermFourPillars: {
         year: `${lunar.getYearGan()}${lunar.getYearZhi()}`,
-        month: `${lunar.getMonthGan()}${lunar.getMonthZhi()}`,
+        // 非節氣月柱照農曆月份起 (五虎遁)，不看節氣交接
+        month: `${STEMS[(TIGER_MONTH_STEM_START[lunar.getYearGan() as HeavenlyStem] + Math.abs(lunar.getMonth()) - 1) % 10]}${ZHI_ORDER[(Math.abs(lunar.getMonth()) + 1) % 12]}`,
         day: `${lunar.getDayGan()}${lunar.getDayZhi()}`,
         time: `${lunar.getTimeGan()}${lunar.getTimeZhi()}`
       },
@@ -718,6 +750,17 @@ export function getDefaultDecadeKey(chart: ZiweiChartData): string {
   const age = new Date().getFullYear() - getLunarBirthYear(chart) + 1;
   const list = getDecadeList(chart);
   return (list.find((d) => age >= d.range[0] && age <= d.range[1]) || list[0]).key;
+}
+
+/** 今年 (以農曆年算，過了春節才換年) 落在哪個大限；還沒出生或超過最後一個大限就回 null */
+export function getThisYearFlow(chart: ZiweiChartData, today = new Date()): { decadeKey: string; year: number; age: number } | null {
+  const year = Solar.fromDate(today).getLunar().getYear();
+  const age = year - getLunarBirthYear(chart) + 1;
+  if (age < 1) return null;
+  const list = getDecadeList(chart);
+  if (age < list[0].range[0]) return { decadeKey: 'child', year, age };
+  const d = list.find((x) => age >= x.range[0] && age <= x.range[1]);
+  return d ? { decadeKey: d.key, year, age } : null;
 }
 
 // 某個大限 (或童限) 內的十個流年
