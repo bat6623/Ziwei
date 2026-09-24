@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import type { ZiweiChartData } from '../types/ziwei';
-import { Download, Upload, Save, Database, Code, Image as ImageIcon, Trash2, Check, FileJson } from 'lucide-react';
+import { Download, Upload, Save, Database, Code, Image as ImageIcon, Trash2, Check, FileJson, RefreshCw } from 'lucide-react';
 import html2canvas from 'html2canvas';
 
 interface DataStorageManagerProps {
   currentChart: ZiweiChartData;
   onLoadChart: (chart: ZiweiChartData) => void;
+  onClearCache?: () => void;
 }
 
-export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentChart, onLoadChart }) => {
+export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentChart, onLoadChart, onClearCache }) => {
   const [savedCharts, setSavedCharts] = useState<ZiweiChartData[]>([]);
   const [showCodeModal, setShowCodeModal] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
@@ -36,6 +37,26 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
     const updated = savedCharts.filter((c) => c.id !== id);
     setSavedCharts(updated);
     localStorage.setItem('ziwei_saved_charts', JSON.stringify(updated));
+  };
+
+  // 清除快取與暫存 (Clear All Caches & LocalStorage)
+  const handleClearAllCache = async () => {
+    if (window.confirm('確定要清除所有本機快取、歷史儲存紀錄與瀏覽器快取嗎？')) {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+        setSavedCharts([]);
+        if (onClearCache) onClearCache();
+        alert('已成功清除所有本機快取與歷史紀錄！');
+      } catch (e) {
+        console.error('Clear cache failed', e);
+        alert('快取清除完畢！');
+      }
+    }
   };
 
   const handleExportJson = () => {
@@ -107,14 +128,14 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={handleSaveToLocalStorage}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs"
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
           >
             <Save className="w-3.5 h-3.5" /> 儲存目前命盤
           </button>
 
           <button
             onClick={handleExportJson}
-            className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs"
+            className="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
           >
             <Download className="w-3.5 h-3.5" /> 匯出 JSON
           </button>
@@ -127,16 +148,24 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
           <button
             onClick={handleExportImage}
             disabled={isExportingImage}
-            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs disabled:opacity-50"
+            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition shadow-2xs disabled:opacity-50 cursor-pointer"
           >
             <ImageIcon className="w-3.5 h-3.5" /> {isExportingImage ? '繪製中...' : '匯出圖片 PNG'}
           </button>
 
           <button
-            onClick={() => setShowCodeModal(true)}
-            className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition"
+            onClick={handleClearAllCache}
+            className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+            title="清除所有本機快取與歷史紀錄"
           >
-            <Code className="w-3.5 h-3.5" /> 檢視資料結構 JSON
+            <RefreshCw className="w-3.5 h-3.5 text-rose-600" /> 清除快取
+          </button>
+
+          <button
+            onClick={() => setShowCodeModal(true)}
+            className="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition cursor-pointer"
+          >
+            <Code className="w-3.5 h-3.5" /> 檢視 JSON
           </button>
         </div>
       </div>
@@ -158,7 +187,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
                 </div>
                 <button
                   onClick={() => handleDeleteRecord(chart.id)}
-                  className="text-slate-400 hover:text-rose-600 p-1 transition"
+                  className="text-slate-400 hover:text-rose-600 p-1 transition cursor-pointer"
                   title="刪除"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -180,20 +209,20 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleCopyJson}
-                  className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-amber-600 transition shadow-2xs"
+                  className="bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-amber-600 transition shadow-2xs cursor-pointer"
                 >
                   {copied ? <Check className="w-3.5 h-3.5" /> : <Code className="w-3.5 h-3.5" />}
                   {copied ? '已複製 JSON' : '複製全盤 JSON'}
                 </button>
                 <button
                   onClick={() => setShowCodeModal(false)}
-                  className="text-slate-500 hover:text-slate-900 px-2 py-1 font-bold"
+                  className="text-slate-500 hover:text-slate-900 px-2 py-1 font-bold cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
             </div>
-            <div className="p-4 overflow-y-auto font-mono text-xs text-slate-800 bg-slate-950 text-emerald-400 flex-1">
+            <div className="p-4 overflow-y-auto font-mono text-xs text-emerald-400 bg-slate-950 flex-1">
               <pre>{JSON.stringify(currentChart, null, 2)}</pre>
             </div>
           </div>

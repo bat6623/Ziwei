@@ -20,6 +20,22 @@ const BRANCH_INDEX: Record<EarthlyBranch, number> = {
   '丑': 8, '寅': 9, '卯': 10, '辰': 11
 };
 
+// 八卦與傳統地理方位表
+const DIRECTION_MAP: Record<EarthlyBranch, { direction: string; trigram: string }> = {
+  '巳': { direction: '南偏東', trigram: '巽宮' },
+  '午': { direction: '正南方', trigram: '離宮' },
+  '未': { direction: '南偏西', trigram: '坤宮' },
+  '申': { direction: '西偏南', trigram: '坤宮' },
+  '酉': { direction: '正西方', trigram: '兌宮' },
+  '戌': { direction: '西偏北', trigram: '乾宮' },
+  '亥': { direction: '北偏西', trigram: '乾宮' },
+  '子': { direction: '正北方', trigram: '坎宮' },
+  '丑': { direction: '北偏東', trigram: '艮宮' },
+  '寅': { direction: '東偏北', trigram: '艮宮' },
+  '卯': { direction: '正東方', trigram: '震宮' },
+  '辰': { direction: '東偏南', trigram: '巽宮' },
+};
+
 const STEMS: HeavenlyStem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
 
 const PALACE_NAMES_ORDER: PalaceName[] = [
@@ -134,7 +150,9 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
   }
 
   const lunarMonth = Math.abs(lunar.getMonth());
+  const lunarDay = lunar.getDay();
   const timeZhiIndex = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'].indexOf(timeBranch);
+  const yearZhiIndex = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'].indexOf(yearBranch);
 
   let mingBranchIndex = (BRANCH_INDEX['寅'] + (lunarMonth - 1) - timeZhiIndex + 24) % 12;
   const mingBranch = BRANCHES_ORDER[mingBranchIndex];
@@ -161,9 +179,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
   const mingStem = palaceStems[mingBranchIndex];
   const fiveElem = getFiveElement(mingStem, mingBranch);
 
-  const lunarDay = lunar.getDay();
   let ziweiBranchIndex = 0;
-  
   let quotient = Math.ceil(lunarDay / fiveElem.number);
   let remainder = (quotient * fiveElem.number) - lunarDay;
   let ziweiZhiIndex = 0;
@@ -195,6 +211,47 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
 
   const yearMutagens = FOUR_MUTAGENS_MAP[yearStem];
 
+  // 計算乙級星位置：
+  // 1. 紅鸞天喜 (依年支：卯起子年逆數)
+  const hongluanZhiIndex = (3 - yearZhiIndex + 12) % 12; // 卯為3
+  const tianxiZhiIndex = (hongluanZhiIndex + 6) % 12;
+  const hongluanZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][hongluanZhiIndex];
+  const tianxiZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianxiZhiIndex];
+
+  // 2. 天刑天姚 (依農曆月：酉起一月順安天刑，丑起一月順安天姚)
+  const tianxingZhiIndex = (9 + (lunarMonth - 1)) % 12; // 酉為9
+  const tianyaoZhiIndex = (1 + (lunarMonth - 1)) % 12; // 丑為1
+  const tianxingZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianxingZhiIndex];
+  const tianyaoZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianyaoZhiIndex];
+
+  // 3. 孤辰寡宿 (依年支)
+  let guchenZhi = '寅', guasuZhi = '戌';
+  if (['亥','子','丑'].includes(yearBranch)) { guchenZhi = '寅'; guasuZhi = '戌'; }
+  else if (['寅','卯','辰'].includes(yearBranch)) { guchenZhi = '巳'; guasuZhi = '丑'; }
+  else if (['巳','午','未'].includes(yearBranch)) { guchenZhi = '申'; guasuZhi = '辰'; }
+  else if (['申','酉','戌'].includes(yearBranch)) { guchenZhi = '亥'; guasuZhi = '未'; }
+
+  // 4. 龍池鳳閣 (依年支：辰起子年順安龍池，戌起子年逆安鳳閣)
+  const longchiZhiIndex = (4 + yearZhiIndex) % 12; // 辰為4
+  const fenggeZhiIndex = (10 - yearZhiIndex + 12) % 12; // 戌為10
+  const longchiZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][longchiZhiIndex];
+  const fenggeZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][fenggeZhiIndex];
+
+  // 5. 三台八座 (依左輔右弼與生日安)
+  const zuofuZhiIndex = (4 + (lunarMonth - 1)) % 12;
+  const youbiZhiIndex = (10 - (lunarMonth - 1) + 12) % 12;
+  const santaiZhiIndex = (zuofuZhiIndex + (lunarDay - 1)) % 12;
+  const bazuoZhiIndex = (youbiZhiIndex - (lunarDay - 1) + 24) % 12;
+  const santaiZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][santaiZhiIndex];
+  const bazuoZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][bazuoZhiIndex];
+
+  // 6. 咸池華蓋 (依年支三合)
+  let xianchiZhi = '酉', huagaiZhi = '辰';
+  if (['申','子','辰'].includes(yearBranch)) { xianchiZhi = '酉'; huagaiZhi = '辰'; }
+  else if (['寅','午','戌'].includes(yearBranch)) { xianchiZhi = '卯'; huagaiZhi = '戌'; }
+  else if (['巳','酉','丑'].includes(yearBranch)) { xianchiZhi = '午'; huagaiZhi = '丑'; }
+  else if (['亥','卯','未'].includes(yearBranch)) { xianchiZhi = '子'; huagaiZhi = '未'; }
+
   const palaces: PalaceData[] = [];
 
   for (let i = 0; i < 12; i++) {
@@ -204,7 +261,9 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     const palaceNameOffset = (BRANCH_INDEX[branch] - BRANCH_INDEX[mingBranch] + 12) % 12;
     const name = PALACE_NAMES_ORDER[palaceNameOffset];
     const isBodyPalace = branch === shenBranch;
+    const dirInfo = DIRECTION_MAP[branch];
 
+    // 主星 (甲級)
     const mainStars: Star[] = [];
     const checkAddMain = (starName: string, targetIdx: number) => {
       if (i === targetIdx) {
@@ -238,6 +297,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     checkAddMain('七殺', qishaiIndex);
     checkAddMain('破軍', pojunIndex);
 
+    // 吉星煞星
     const luckyStars: Star[] = [];
     const badStars: Star[] = [];
 
@@ -252,8 +312,6 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       luckyStars.push({ id: `wenqu-${branch}`, name: '文曲', type: 'lucky', brightness: BRIGHTNESS_MAP['文曲']?.[branch], mutagen: m, colorCategory: 'blue' });
     }
 
-    const zuofuZhiIndex = (4 + (lunarMonth - 1)) % 12;
-    const youbiZhiIndex = (10 - (lunarMonth - 1) + 12) % 12;
     if (branch === ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][zuofuZhiIndex]) {
       let m: Mutagen | undefined = yearMutagens['科'] === '左輔' ? '科' : undefined;
       luckyStars.push({ id: `zuofu-${branch}`, name: '左輔', type: 'lucky', mutagen: m, colorCategory: 'blue' });
@@ -271,6 +329,27 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       luckyStars.push({ id: `lucun-${branch}`, name: '祿存', type: 'lucky', colorCategory: 'gold' });
     }
 
+    // 乙級雜曜收集 (Grade B Stars)
+    const minorStars: Star[] = [];
+    if (branch === hongluanZhi) minorStars.push({ id: `hongluan-${branch}`, name: '紅鸞', type: 'gradeB' });
+    if (branch === tianxiZhi) minorStars.push({ id: `tianxi-${branch}`, name: '天喜', type: 'gradeB' });
+    if (branch === tianxingZhi) minorStars.push({ id: `tianxing-${branch}`, name: '天刑', type: 'gradeB' });
+    if (branch === tianyaoZhi) minorStars.push({ id: `tianyao-${branch}`, name: '天姚', type: 'gradeB' });
+    if (branch === guchenZhi) minorStars.push({ id: `guchen-${branch}`, name: '孤辰', type: 'gradeB' });
+    if (branch === guasuZhi) minorStars.push({ id: `guasu-${branch}`, name: '寡宿', type: 'gradeB' });
+    if (branch === longchiZhi) minorStars.push({ id: `longchi-${branch}`, name: '龍池', type: 'gradeB' });
+    if (branch === fenggeZhi) minorStars.push({ id: `fengge-${branch}`, name: '鳳閣', type: 'gradeB' });
+    if (branch === santaiZhi) minorStars.push({ id: `santai-${branch}`, name: '三台', type: 'gradeB' });
+    if (branch === bazuoZhi) minorStars.push({ id: `bazuo-${branch}`, name: '八座', type: 'gradeB' });
+    if (branch === xianchiZhi) minorStars.push({ id: `xianchi-${branch}`, name: '咸池', type: 'gradeB' });
+    if (branch === huagaiZhi) minorStars.push({ id: `huagai-${branch}`, name: '華蓋', type: 'gradeB' });
+
+    // 丙級神煞收集 (Grade C Stars)
+    const godStars: Star[] = [
+      { id: `boshi-${branch}`, name: ['博士', '力士', '青龍', '小耗', '將軍', '奏書', '飛廉', '喜神', '病符', '大耗', '伏兵', '官符'][i % 12], type: 'gradeC' },
+      { id: `suiqian-${branch}`, name: ['歲建', '晦氣', '喪門', '貫索', '官符', '小耗', '大耗', '龍德', '白虎', '天德', '吊客', '病符'][i % 12], type: 'gradeC' }
+    ];
+
     let isForward = (yinyangGender === '陽男' || yinyangGender === '陰女');
     let decadalOffset = (BRANCH_INDEX[branch] - BRANCH_INDEX[mingBranch] + 12) % 12;
     if (!isForward) {
@@ -287,14 +366,14 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       branch,
       stem,
       name,
+      direction: dirInfo.direction,
+      directionEightTrigram: dirInfo.trigram,
       isBodyPalace,
       mainStars,
       luckyStars,
       badStars,
-      minorStars: [
-        { id: `hongluan-${i}`, name: i % 2 === 0 ? '天喜' : '紅鸞', type: 'minor' },
-        { id: `tianxing-${i}`, name: i % 3 === 0 ? '天刑' : '解神', type: 'minor' }
-      ],
+      minorStars,
+      godStars,
       boshi: ['博士', '力士', '青龍', '小耗', '將軍', '奏書', '飛廉', '喜神', '病符', '大耗', '伏兵', '官符'][i % 12],
       suiqian: ['歲建', '晦氣', '喪門', '貫索', '官符', '小耗', '大耗', '龍德', '白虎', '天德', '吊客', '病符'][i % 12],
       jiangqian: ['將星', '攀鞍', '歲驛', '息神', '華蓋', '劫煞', '災煞', '天煞', '指背', '咸池', '月煞', '亡神'][i % 12],
@@ -313,7 +392,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     userInfo: {
-      name: input.name || '無名氏',
+      name: input.name || '未命名',
       gender: input.gender,
       yinyangGender,
       fiveElementElement: fiveElem.name,

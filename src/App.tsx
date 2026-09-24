@@ -4,9 +4,8 @@ import type { ZiweiChartData, BirthInput, PalaceData } from './types/ziwei';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
 import { DataStorageManager } from './components/DataStorageManager';
-import { Sparkles, Calendar, RotateCcw } from 'lucide-react';
+import { Sparkles, Calendar, RotateCcw, RefreshCw } from 'lucide-react';
 
-// 動態產生當前系統時間作為全新預設輸入 (不再保留特定個人資料)
 const getInitialInput = (): BirthInput => {
   const now = new Date();
   return {
@@ -21,7 +20,6 @@ const getInitialInput = (): BirthInput => {
   };
 };
 
-// 備用測試範例 (選用)
 const DEMO_INPUT: BirthInput = {
   name: '測試範例',
   gender: 'male',
@@ -50,6 +48,10 @@ export function App() {
     handleCalculate(DEMO_INPUT);
   };
 
+  const handleClearCache = () => {
+    handleCalculate(getInitialInput());
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col items-center pb-12 selection:bg-amber-500 selection:text-white">
       {/* 頂部 Header */}
@@ -64,15 +66,23 @@ export function App() {
               <h1 className="text-base sm:text-lg font-black tracking-wider text-slate-900 font-serif flex items-center gap-1.5">
                 紫微斗數神算命盤 <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-sans font-bold">白色清爽版</span>
               </h1>
-              <p className="text-[10px] text-slate-500">專業級安星演算法 • 文墨天機經典版型 • 支援 JSON 資料結構儲存</p>
+              <p className="text-[10px] text-slate-500">專業級安星演算法 • 地理八卦方位與乙丙級星 • 支援快取清除</p>
             </div>
           </div>
 
           {/* 右側操作按鈕 */}
           <div className="flex items-center gap-2">
             <button
+              onClick={handleClearCache}
+              className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
+              title="清除快取並重置"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> 清除快取
+            </button>
+
+            <button
               onClick={handleLoadDemo}
-              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition shadow-2xs"
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
               title="載入測試範例 (1956/02/11 巳時)"
             >
               <RotateCcw className="w-3.5 h-3.5" /> 帶入測試範例
@@ -90,22 +100,23 @@ export function App() {
 
       {/* 主內容區 */}
       <main className="w-full max-w-6xl px-2 sm:px-4 mt-4 flex flex-col items-center">
-        {/* 提示 Banner */}
         <div className="w-full max-w-5xl bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-center justify-between text-xs text-amber-900 shadow-2xs">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-600 animate-spin-slow" />
             <span>提示：點擊任何宮位（如命宮、官祿宮）即可高亮顯示其<strong>「三方四正」</strong>關係連線！</span>
           </div>
           <span className="hidden sm:inline-block text-[10px] text-slate-500">
-            地支盤：巳午未申(上) • 申酉戌亥(右) • 亥子丑寅(下) • 寅卯辰巳(左)
+            地支盤：巳(巽/南偏東) • 午(離/正南) • 子(坎/正北) • 卯(震/正東) • 酉(兌/正西)
           </span>
         </div>
 
-        {/* 經典地支盤 4x4 網格 */}
         <ZiweiGrid data={chartData} onPalaceSelect={(palace) => setSelectedPalace(palace)} />
 
-        {/* 儲存管理與 JSON 資料結構展示區 */}
-        <DataStorageManager currentChart={chartData} onLoadChart={(c) => setChartData(c)} />
+        <DataStorageManager
+          currentChart={chartData}
+          onLoadChart={(c) => setChartData(c)}
+          onClearCache={handleClearCache}
+        />
       </main>
 
       <InputModal
