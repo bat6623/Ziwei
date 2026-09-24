@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { calculateZiweiChart, applyFlowSelection } from './utils/ziweiEngine';
 import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
 import { getBirthInput, type SavedRecord } from './utils/records';
@@ -11,6 +11,7 @@ import { BottomControlBar } from './components/BottomControlBar';
 import { InfoModals } from './components/InfoModals';
 import { Sun, Moon, HelpCircle, Info } from 'lucide-react';
 import { useTheme } from './utils/theme';
+import { forceUpdate, takeUpdateNotice } from './utils/forceUpdate';
 
 const getInitialInput = (): BirthInput => {
   const now = new Date();
@@ -37,6 +38,9 @@ const DEMO_INPUT: BirthInput = {
   minute: 5,
 };
 
+// 按過「強制更新」重新載入後，要顯示的結果 (只在載入時讀一次)
+const UPDATE_NOTICE = takeUpdateNotice();
+
 const NO_FLOW: FlowSelection = { decadeKey: null, year: null, month: null, day: null, hour: null };
 
 export function App() {
@@ -46,6 +50,12 @@ export function App() {
   const chartData = useMemo(() => applyFlowSelection(baseChart, flowSel), [baseChart, flowSel]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const theme = useTheme();
+  const [updateNotice, setUpdateNotice] = useState<string | null>(UPDATE_NOTICE);
+  useEffect(() => {
+    if (!updateNotice) return;
+    const t = setTimeout(() => setUpdateNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [updateNotice]);
   const darkNow = theme.pref === 'dark' || (theme.pref === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // 頁面切換 Tab (飛星 | 三合 | 四化)
@@ -207,6 +217,7 @@ export function App() {
         onClearCache={handleClearCache}
         onLoadDemo={handleLoadDemo}
         onOpenInfo={setInfoModalTab}
+        onForceUpdate={forceUpdate}
         themePref={theme.pref}
         onThemeChange={theme.setPref}
       />
@@ -214,7 +225,20 @@ export function App() {
       <InputModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSubmit={handleCalculate} />
 
       {/* 說明與關於 */}
-      <InfoModals activeTab={infoModalTab} onClose={() => setInfoModalTab(null)} />
+      <InfoModals activeTab={infoModalTab} onClose={() => setInfoModalTab(null)} onForceUpdate={forceUpdate} />
+
+      {/* 強制更新後的結果提示 */}
+      {updateNotice && (
+        <div role="status" className="fixed left-1/2 -translate-x-1/2 top-20 sm:top-24 z-[70] max-w-[calc(100%-2rem)] font-apple">
+          <button
+            type="button"
+            onClick={() => setUpdateNotice(null)}
+            className="dark island bg-card text-label rounded-full px-5 py-3 text-[15px] shadow-[0_10px_30px_rgba(0,0,0,0.25)] cursor-pointer"
+          >
+            {updateNotice}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

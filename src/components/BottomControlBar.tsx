@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { ChartTabMode } from '../types/ziwei';
 import type { ThemePref } from '../utils/theme';
-import { Ellipsis, CalendarPlus, Image, RotateCcw, RefreshCw, HelpCircle, Info, X } from 'lucide-react';
+import { Ellipsis, CalendarPlus, Image, RotateCcw, RefreshCw, HelpCircle, Info, X, CloudDownload } from 'lucide-react';
 
 interface BottomControlBarProps {
   mode: ChartTabMode;
@@ -11,6 +11,7 @@ interface BottomControlBarProps {
   onClearCache: () => void;
   onLoadDemo: () => void;
   onOpenInfo: (tab: 'help' | 'about') => void;
+  onForceUpdate: () => void;
   themePref: ThemePref;
   onThemeChange: (pref: ThemePref) => void;
 }
@@ -29,6 +30,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   onClearCache,
   onLoadDemo,
   onOpenInfo,
+  onForceUpdate,
   themePref,
   onThemeChange,
 }) => {
@@ -41,6 +43,7 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
     { label: '重置為此刻時間', Icon: RefreshCw, run: onClearCache },
     { label: '使用說明', Icon: HelpCircle, run: () => onOpenInfo('help') },
     { label: '關於', Icon: Info, run: () => onOpenInfo('about') },
+    { label: '強制更新到最新版', Icon: CloudDownload, run: onForceUpdate },
   ];
 
   return (

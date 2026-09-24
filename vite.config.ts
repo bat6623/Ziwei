@@ -20,7 +20,21 @@ const buildTime = new Intl.DateTimeFormat('zh-TW', {
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // 產出 version.json：網頁上的「強制更新」會拿它跟目前版號比對
+    {
+      name: 'emit-version-json',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({ version: pkg.version, buildTime }) + '\n',
+        });
+      },
+    },
+  ],
   base: '/Ziwei/', // 發布至 GitHub Pages 的基礎路徑
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

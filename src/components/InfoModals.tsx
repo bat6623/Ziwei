@@ -1,10 +1,11 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, CloudDownload } from 'lucide-react';
 import { APP_VERSION, BUILD_TIME, GIT_SHA } from '../utils/appVersion';
 
 interface InfoModalsProps {
   activeTab: 'help' | 'about' | null;
   onClose: () => void;
+  onForceUpdate: () => void;
 }
 
 const HELP_ITEMS = [
@@ -16,7 +17,7 @@ const HELP_ITEMS = [
   { title: '儲存與備份', text: '「儲存目前命盤」會存到這台裝置。「匯出紀錄檔」可以存到 iCloud 雲碟，換裝置或清除瀏覽器資料後再匯入。' },
 ];
 
-export const InfoModals: React.FC<InfoModalsProps> = ({ activeTab, onClose }) => {
+export const InfoModals: React.FC<InfoModalsProps> = ({ activeTab, onClose, onForceUpdate }) => {
   if (!activeTab) return null;
 
   return (
@@ -51,6 +52,14 @@ export const InfoModals: React.FC<InfoModalsProps> = ({ activeTab, onClose }) =>
               <img src={`${import.meta.env.BASE_URL}icons/icon-192.png`} alt="" width={80} height={80} className="w-20 h-20 rounded-[22px]" />
               <h4 className="mt-3 text-[28px] font-light tracking-tight text-label">紫微斗數神算命盤</h4>
               <p className="text-[15px] text-label3">版本 {APP_VERSION}</p>
+              <button
+                type="button"
+                onClick={onForceUpdate}
+                className="mt-3 h-11 px-5 rounded-full bg-accent text-on-accent text-[15px] font-medium flex items-center gap-2 hover:brightness-95 active:brightness-90 cursor-pointer"
+              >
+                <CloudDownload className="w-4 h-4" /> 強制更新到最新版
+              </button>
+              <p className="mt-2 text-[12px] text-label3 text-center">跳過瀏覽器暫存重新載入，命盤紀錄不會被清掉</p>
             </div>
 
             <ul className="bg-grouped rounded-[20px] overflow-hidden divide-y divide-separator text-[17px]">
