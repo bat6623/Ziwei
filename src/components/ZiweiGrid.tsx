@@ -50,119 +50,134 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect
     ];
   };
 
-  const sanFangIndices = mode === 'sanhe' ? getSanFangIndexList(selectedPalace) : [];
+  const sanFangIndices = mode === 'sanhe'
+    ? getSanFangIndexList(selectedPalace || data.palaces.find((p) => p.name === '命宮') || data.palaces[0])
+    : [];
+
+  // 當切換 mode 時，若當前未選中宮位，自動預設選中命宮
+  useEffect(() => {
+    if (!selectedPalace && (mode === 'feixing' || mode === 'sanhe')) {
+      const mingPalace = data.palaces.find((p) => p.name === '命宮') || data.palaces[0];
+      setSelectedPalace(mingPalace);
+      if (onPalaceSelect) onPalaceSelect(mingPalace);
+    }
+  }, [mode, data]);
 
   // 根據 mode (飛星/三合/四化) 與 selectedPalace 動態計算引線
   useEffect(() => {
-    if (!containerRef.current) {
-      setLineCoords([]);
-      return;
-    }
-
-    const container = containerRef.current;
-    const containerRect = container.getBoundingClientRect();
-
-    // 取得指定宮位索引 DOM 中點
-    const getPalaceCenterCoord = (idx: number) => {
-      const el = container.querySelector(`[data-palace-index="${idx}"]`);
-      if (el) {
-        const rect = el.getBoundingClientRect();
-        return {
-          x: rect.left + rect.width / 2 - containerRect.left,
-          y: rect.top + rect.height / 2 - containerRect.top,
-        };
-      }
-      return null;
-    };
-
-    // 模式一：飛星模式 (Flying Star Mode)
-    if (mode === 'feixing') {
-      if (!selectedPalace) {
+    const updateLines = () => {
+      if (!containerRef.current) {
         setLineCoords([]);
         return;
       }
-      const stem = selectedPalace.stem; // 選中宮位的宮幹 (如 辛)
-      const mutagens = STEM_FLYING_MUTAGENS[stem];
-      const startCoord = getPalaceCenterCoord(selectedPalace.index);
-      if (!startCoord) return;
 
-      const lines: FlyingLine[] = [];
-      const mutColors: Record<Mutagen, { color: string; label: string }> = {
-        '祿': { color: '#059669', label: '飛祿' },
-        '權': { color: '#e11d48', label: '飛權' },
-        '科': { color: '#9333ea', label: '飛科' },
-        '忌': { color: '#0284c7', label: '飛忌' },
+      const container = containerRef.current;
+      const containerRect = container.getBoundingClientRect();
+
+      // 取得指定宮位索引 DOM 中點
+      const getPalaceCenterCoord = (idx: number) => {
+        const el = container.querySelector(`[data-palace-index="${idx}"]`);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          return {
+            x: rect.left + rect.width / 2 - containerRect.left,
+            y: rect.top + rect.height / 2 - containerRect.top,
+          };
+        }
+        return null;
       };
 
-      (Object.keys(mutagens) as Mutagen[]).forEach((m) => {
-        const targetStarName = mutagens[m];
-        // 尋找全盤中帶有該星曜的宮位
-        const targetPalace = data.palaces.find((p) =>
-          [...p.mainStars, ...p.luckyStars].some((s) => s.name === targetStarName)
-        );
-        if (targetPalace && targetPalace.index !== selectedPalace.index) {
-          const endCoord = getPalaceCenterCoord(targetPalace.index);
-          if (endCoord) {
-            lines.push({
-              x1: startCoord.x,
-              y1: startCoord.y,
-              x2: endCoord.x,
-              y2: endCoord.y,
-              type: m,
-              label: `${mutColors[m].label}(${targetStarName})`,
-              color: mutColors[m].color,
-            });
-          }
-        }
-      });
-      setLineCoords(lines);
-    }
-    // 模式二：三合模式 (Sanhe Mode)
-    else if (mode === 'sanhe') {
-      if (!selectedPalace) {
-        setLineCoords([]);
-        return;
-      }
-      const indices = getSanFangIndexList(selectedPalace);
-      const coords = indices.map((idx) => getPalaceCenterCoord(idx)).filter(Boolean) as { x: number; y: number }[];
+      // 模式一：飛星模式 (Flying Star Mode)
+      if (mode === 'feixing') {
+        const activePalace = selectedPalace || data.palaces.find((p) => p.name === '命宮') || data.palaces[0];
+        const stem = activePalace.stem; // 宮幹 (如 辛)
+        const mutagens = STEM_FLYING_MUTAGENS[stem];
+        const startCoord = getPalaceCenterCoord(activePalace.index);
+        if (!startCoord) return;
 
-      if (coords.length === 4) {
-        const lines: FlyingLine[] = [
-          { x1: coords[0].x, y1: coords[0].y, x2: coords[1].x, y2: coords[1].y, type: 'sanhe', label: '對宮衝照', color: '#0284c7' },
-          { x1: coords[0].x, y1: coords[0].y, x2: coords[2].x, y2: coords[2].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
-          { x1: coords[0].x, y1: coords[0].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
-          { x1: coords[2].x, y1: coords[2].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '財官連線', color: '#059669' },
-        ];
-        setLineCoords(lines);
-      }
-    }
-    // 模式三：四化模式 (Sihua Mode)
-    else if (mode === 'sihua') {
-      // 在四化模式下，連線全盤生年四化所在宮位與對宮
-      const lines: FlyingLine[] = [];
-      data.palaces.forEach((p) => {
-        p.mainStars.concat(p.luckyStars).forEach((star) => {
-          if (star.mutagen) {
-            const startCoord = getPalaceCenterCoord(p.index);
-            const oppositeIdx = (p.index + 6) % 12;
-            const endCoord = getPalaceCenterCoord(oppositeIdx);
-            if (startCoord && endCoord) {
-              const mColors: Record<Mutagen, string> = { '祿': '#059669', '權': '#e11d48', '科': '#9333ea', '忌': '#0284c7' };
+        const lines: FlyingLine[] = [];
+        const mutColors: Record<Mutagen, { color: string; label: string }> = {
+          '祿': { color: '#059669', label: '飛祿' },
+          '權': { color: '#e11d48', label: '飛權' },
+          '科': { color: '#9333ea', label: '飛科' },
+          '忌': { color: '#0284c7', label: '飛忌' },
+        };
+
+        (Object.keys(mutagens) as Mutagen[]).forEach((m) => {
+          const targetStarName = mutagens[m];
+          // 尋找全盤中帶有該星曜的宮位
+          const targetPalace = data.palaces.find((p) =>
+            [...p.mainStars, ...p.luckyStars].some((s) => s.name === targetStarName)
+          );
+          if (targetPalace && targetPalace.index !== activePalace.index) {
+            const endCoord = getPalaceCenterCoord(targetPalace.index);
+            if (endCoord) {
               lines.push({
                 x1: startCoord.x,
                 y1: startCoord.y,
                 x2: endCoord.x,
                 y2: endCoord.y,
-                type: star.mutagen,
-                label: `生年${star.mutagen}(${star.name})`,
-                color: mColors[star.mutagen] || '#d97706',
+                type: m,
+                label: `${mutColors[m].label}(${targetStarName})`,
+                color: mutColors[m].color,
               });
             }
           }
         });
-      });
-      setLineCoords(lines);
-    }
+        setLineCoords(lines);
+      }
+      // 模式二：三合模式 (Sanhe Mode)
+      else if (mode === 'sanhe') {
+        const activePalace = selectedPalace || data.palaces.find((p) => p.name === '命宮') || data.palaces[0];
+        const indices = getSanFangIndexList(activePalace);
+        const coords = indices.map((idx) => getPalaceCenterCoord(idx)).filter(Boolean) as { x: number; y: number }[];
+
+        if (coords.length === 4) {
+          const lines: FlyingLine[] = [
+            { x1: coords[0].x, y1: coords[0].y, x2: coords[1].x, y2: coords[1].y, type: 'sanhe', label: '對宮衝照', color: '#0284c7' },
+            { x1: coords[0].x, y1: coords[0].y, x2: coords[2].x, y2: coords[2].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
+            { x1: coords[0].x, y1: coords[0].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
+            { x1: coords[2].x, y1: coords[2].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '財官連線', color: '#059669' },
+          ];
+          setLineCoords(lines);
+        }
+      }
+      // 模式三：四化模式 (Sihua Mode)
+      else if (mode === 'sihua') {
+        // 在四化模式下，連線全盤生年四化所在宮位與對宮
+        const lines: FlyingLine[] = [];
+        data.palaces.forEach((p) => {
+          p.mainStars.concat(p.luckyStars).forEach((star) => {
+            if (star.mutagen) {
+              const startCoord = getPalaceCenterCoord(p.index);
+              const oppositeIdx = (p.index + 6) % 12;
+              const endCoord = getPalaceCenterCoord(oppositeIdx);
+              if (startCoord && endCoord) {
+                const mColors: Record<Mutagen, string> = { '祿': '#059669', '權': '#e11d48', '科': '#9333ea', '忌': '#0284c7' };
+                lines.push({
+                  x1: startCoord.x,
+                  y1: startCoord.y,
+                  x2: endCoord.x,
+                  y2: endCoord.y,
+                  type: star.mutagen,
+                  label: `生年${star.mutagen}(${star.name})`,
+                  color: mColors[star.mutagen] || '#d97706',
+                });
+              }
+            }
+          });
+        });
+        setLineCoords(lines);
+      }
+    };
+
+    const timer = setTimeout(updateLines, 50);
+    window.addEventListener('resize', updateLines);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', updateLines);
+    };
   }, [selectedPalace, mode, data]);
 
   const getPalaceByBranch = (branch: EarthlyBranch): PalaceData => {
