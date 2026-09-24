@@ -4,7 +4,10 @@ import type { ZiweiChartData, BirthInput, PalaceData, ChartTabMode } from './typ
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
 import { DataStorageManager } from './components/DataStorageManager';
-import { Sparkles, Calendar, RotateCcw, RefreshCw, Zap, Compass, Layers } from 'lucide-react';
+import { FlowCycleBar } from './components/FlowCycleBar';
+import { BottomControlBar } from './components/BottomControlBar';
+import { InfoModals } from './components/InfoModals';
+import { Sparkles, Calendar, RotateCcw, RefreshCw } from 'lucide-react';
 
 const getInitialInput = (): BirthInput => {
   const now = new Date();
@@ -38,8 +41,11 @@ export function App() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [, setSelectedPalace] = useState<PalaceData | null>(null);
 
-  // 底部固定切換頁面 Tab (飛星 | 三合 | 四化)
+  // 頁面切換 Tab (飛星 | 三合 | 四化)
   const [tabMode, setTabMode] = useState<ChartTabMode>('sanhe');
+  // 底部 Dock 頁籤 (命盤 | 幫助 | 關於)
+  const [activeDockTab, setActiveDockTab] = useState<'chart' | 'help' | 'about'>('chart');
+  const [infoModalTab, setInfoModalTab] = useState<'help' | 'about' | null>(null);
 
   const handleCalculate = (input: BirthInput) => {
     const newChart = calculateZiweiChart(input);
@@ -55,6 +61,15 @@ export function App() {
     handleCalculate(getInitialInput());
   };
 
+  const handleDockTabChange = (tab: 'chart' | 'help' | 'about') => {
+    setActiveDockTab(tab);
+    if (tab === 'help' || tab === 'about') {
+      setInfoModalTab(tab);
+    } else {
+      setInfoModalTab(null);
+    }
+  };
+
   // 模式提示字串
   const getBannerNotice = () => {
     if (tabMode === 'feixing') {
@@ -67,7 +82,7 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col items-center pb-24 selection:bg-amber-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans flex flex-col items-center pb-32 selection:bg-amber-500 selection:text-white">
       {/* 頂部 Header */}
       <header className="w-full bg-white/90 border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-3">
@@ -80,7 +95,7 @@ export function App() {
               <h1 className="text-base sm:text-lg font-black tracking-wider text-slate-900 font-serif flex items-center gap-1.5">
                 紫微斗數神算命盤 <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-sans font-bold">飛星 • 三合 • 四化</span>
               </h1>
-              <p className="text-[10px] text-slate-500">專業級安星演算法 • 地理八卦方位與乙丙級星 • 底部切換</p>
+              <p className="text-[10px] text-slate-500">專業級安星演算法 • 大限/流年/流月/流日選單 • 底部導覽</p>
             </div>
           </div>
 
@@ -121,12 +136,17 @@ export function App() {
             <span>提示：<strong>{getBannerNotice()}</strong></span>
           </div>
           <span className="hidden sm:inline-block text-[10px] text-slate-500">
-            請使用底部 fixed 導覽頁籤進行【飛星/三合/四化】模式切換
+            請使用底部導覽列切換【飛星/三合/四化】或調整【大限流年】
           </span>
         </div>
 
         {/* 經典地支盤 4x4 網格 */}
         <ZiweiGrid data={chartData} mode={tabMode} onPalaceSelect={(palace) => setSelectedPalace(palace)} />
+
+        {/* 下方流運切換面板 (大限, 流年/小限, 流月, 流日, 流時) */}
+        <div className="w-full max-w-5xl">
+          <FlowCycleBar data={chartData} />
+        </div>
 
         {/* 儲存與圖片匯出管理區 */}
         <DataStorageManager
@@ -136,57 +156,39 @@ export function App() {
         />
       </main>
 
-      {/* 底部固定 Sticky 導覽切換頁籤 (Fixed Bottom Bar) */}
-      <div className="fixed bottom-0 inset-x-0 z-50 bg-white/95 border-t border-slate-200 shadow-2xl backdrop-blur-md px-4 py-2 flex justify-center">
-        <div className="max-w-md w-full bg-slate-100 p-1 rounded-2xl border border-slate-200 grid grid-cols-3 gap-1 shadow-inner">
-          {/* 飛星頁面 */}
-          <button
-            onClick={() => setTabMode('feixing')}
-            className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-              tabMode === 'feixing'
-                ? 'bg-purple-600 text-white shadow-md font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            飛星
-          </button>
-
-          {/* 三合頁面 */}
-          <button
-            onClick={() => setTabMode('sanhe')}
-            className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-              tabMode === 'sanhe'
-                ? 'bg-amber-500 text-white shadow-md font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Compass className="w-4 h-4" />
-            三合
-          </button>
-
-          {/* 四化頁面 */}
-          <button
-            onClick={() => setTabMode('sihua')}
-            className={`py-2 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${
-              tabMode === 'sihua'
-                ? 'bg-emerald-600 text-white shadow-md font-black'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
-            }`}
-          >
-            <Layers className="w-4 h-4" />
-            四化
-          </button>
-        </div>
-      </div>
+      {/* 底部固定 Sticky 控制與導覽列 (文墨天機風格) */}
+      <BottomControlBar
+        mode={tabMode}
+        onModeChange={(m) => setTabMode(m)}
+        onOpenQuickInput={() => setIsModalOpen(true)}
+        onOpenExportImage={() => {
+          // 觸發 DataStorageManager 的圖片匯出 Modal 邏輯，可透過原有的排盤操作
+          const exportBtn = document.getElementById('export-image-btn');
+          if (exportBtn) exportBtn.click();
+        }}
+        onClearCache={handleClearCache}
+        onLoadDemo={handleLoadDemo}
+        activeDockTab={activeDockTab}
+        onDockTabChange={handleDockTabChange}
+      />
 
       <InputModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleCalculate}
       />
+
+      {/* 幫助與關於 Modal */}
+      <InfoModals
+        activeTab={infoModalTab}
+        onClose={() => {
+          setInfoModalTab(null);
+          setActiveDockTab('chart');
+        }}
+      />
     </div>
   );
 }
 
 export default App;
+
