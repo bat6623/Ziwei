@@ -30,11 +30,11 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
   const { userInfo } = data;
   const isFeixing = mode === 'feixing';
 
-  const shiftBtn = 'px-1.5 sm:px-2 py-0.5 border border-separator rounded bg-card text-label hover:bg-fill active:bg-fill2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+  const shiftBtn = 'h-7 sm:h-9 px-2 sm:px-3.5 rounded-full border border-separator text-label hover:bg-fill active:bg-fill2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
     <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-label">
-      <h2 className="text-center text-sm sm:text-xl font-serif font-bold text-label tracking-wider">紫微命盤</h2>
+      <h2 className="text-center text-sm sm:text-2xl font-light tracking-tight">紫微命盤</h2>
 
       <div className="flex flex-wrap justify-between gap-x-2">
         <span><span className="text-label3">姓名：</span>{userInfo.name}</span>
@@ -127,7 +127,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
       )}
 
       {userInfo.activeFlowCycleInfo && (
-        <div className="text-center rounded bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 px-1 py-0.5 text-[9px] sm:text-xs font-medium">
+        <div className="text-center rounded-[14px] bg-accent text-on-accent px-2 py-1 text-[9px] sm:text-xs">
           {userInfo.activeFlowCycleInfo}
         </div>
       )}

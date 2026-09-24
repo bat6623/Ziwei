@@ -3,8 +3,8 @@
 /* 深色模式：<html class="dark"> 時套用 dark: 樣式 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* 介面顏色 (iOS 系統色)，淺色／深色各一組，元件一律用這些名稱 */
-@theme {
+/* 介面顏色：暖米灰底、炭灰面板、螢光黃強調；淺色／深色各一組，元件一律用這些名稱 */
+@theme inline {
   --color-grouped: var(--c-grouped);
   --color-card: var(--c-card);
   --color-card2: var(--c-card2);
@@ -19,42 +19,66 @@
   --color-tint-pressed: var(--c-tint-pressed);
   --color-ok: var(--c-ok);
   --color-danger: var(--c-danger);
+  --color-accent: var(--c-accent);
+  --color-on-accent: var(--c-on-accent);
+  --color-panel: var(--c-panel);
 }
 
 :root {
-  --c-grouped: #f2f2f7;
-  --c-card: #ffffff;
-  --c-card2: #f9f9fb;
-  --c-label: #000000;
-  --c-label2: #3c3c43;
-  --c-label3: #8e8e93;
-  --c-label4: #c7c7cc;
-  --c-separator: #c6c6c8;
-  --c-fill: #e5e5ea;
-  --c-fill2: #d1d1d6;
-  --c-tint: #007aff;
-  --c-tint-pressed: #0062cc;
-  --c-ok: #34c759;
-  --c-danger: #ff3b30;
+  --c-grouped: #e9e8e1;
+  --c-card: #f6f5f0;
+  --c-card2: #efeee8;
+  --c-label: #1b1b1b;
+  --c-label2: #4b4b47;
+  --c-label3: #8b8a84;
+  --c-label4: #bdbcb5;
+  --c-separator: #d9d8d1;
+  --c-fill: #e4e3dc;
+  --c-fill2: #d8d7d0;
+  --c-tint: #1b1b1b;
+  --c-tint-pressed: #000000;
+  --c-ok: #3a8f4f;
+  --c-danger: #d64534;
+  --c-accent: #f2f26b;
+  --c-on-accent: #1b1b1b;
+  --c-panel: #3b3b3b;
   color-scheme: light;
 }
 
 .dark {
-  --c-grouped: #000000;
-  --c-card: #1c1c1e;
-  --c-card2: #242426;
-  --c-label: #ffffff;
-  --c-label2: #d6d6de;
-  --c-label3: #8d8d93;
-  --c-label4: #545458;
-  --c-separator: #38383a;
-  --c-fill: #2c2c2e;
-  --c-fill2: #3a3a3c;
-  --c-tint: #0a84ff;
-  --c-tint-pressed: #409cff;
-  --c-ok: #30d158;
-  --c-danger: #ff453a;
+  --c-grouped: #151514;
+  --c-card: #232322;
+  --c-card2: #2a2a29;
+  --c-label: #f3f2ec;
+  --c-label2: #cbcac4;
+  --c-label3: #8f8e88;
+  --c-label4: #575652;
+  --c-separator: #393937;
+  --c-fill: #2e2e2c;
+  --c-fill2: #3b3b39;
+  --c-tint: #f2f26b;
+  --c-tint-pressed: #e0e05a;
+  --c-ok: #6fcf86;
+  --c-danger: #ff6b5b;
+  --c-accent: #f2f26b;
+  --c-on-accent: #1b1b1b;
+  --c-panel: #3b3b3b;
   color-scheme: dark;
+}
+
+/* 深色面板 (像參考圖右側的炭灰卡片)：不論淺色深色模式都是深底亮字 */
+.island {
+  --c-card: #3b3b3b;
+  --c-card2: #444443;
+  --c-fill: #4a4a48;
+  --c-fill2: #555553;
+  --c-separator: #525250;
+}
+.dark .island {
+  --c-card: #2e2e2d;
+  --c-card2: #363635;
+  --c-fill: #3c3c3a;
+  --c-separator: #464644;
 }
 
 @layer utilities {
@@ -85,7 +109,7 @@
   }
   /* 蘋果系統字型：中文優先用蘋方 */
   .font-apple {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "PingFang TC", "Helvetica Neue", "Microsoft JhengHei", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 }

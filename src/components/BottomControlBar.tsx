@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { ChartTabMode } from '../types/ziwei';
 import type { ThemePref } from '../utils/theme';
-import { CircleDot, HelpCircle, Info, Ellipsis, CalendarPlus, Image, RotateCcw, RefreshCw } from 'lucide-react';
+import { Ellipsis, CalendarPlus, Image, RotateCcw, RefreshCw, HelpCircle, Info, X } from 'lucide-react';
 
 interface BottomControlBarProps {
   mode: ChartTabMode;
@@ -10,8 +10,7 @@ interface BottomControlBarProps {
   onOpenExportImage: () => void;
   onClearCache: () => void;
   onLoadDemo: () => void;
-  activeDockTab: 'chart' | 'help' | 'about';
-  onDockTabChange: (tab: 'chart' | 'help' | 'about') => void;
+  onOpenInfo: (tab: 'help' | 'about') => void;
   themePref: ThemePref;
   onThemeChange: (pref: ThemePref) => void;
 }
@@ -22,12 +21,6 @@ const MODES: { key: ChartTabMode; label: string }[] = [
   { key: 'sihua', label: '四化' },
 ];
 
-const TABS = [
-  { key: 'chart', label: '命盤', Icon: CircleDot },
-  { key: 'help', label: '幫助', Icon: HelpCircle },
-  { key: 'about', label: '關於', Icon: Info },
-] as const;
-
 export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   mode,
   onModeChange,
@@ -35,89 +28,94 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
   onOpenExportImage,
   onClearCache,
   onLoadDemo,
-  activeDockTab,
-  onDockTabChange,
+  onOpenInfo,
   themePref,
   onThemeChange,
 }) => {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
-  const sheetActions = [
+  const actions = [
     { label: '輸入生辰排盤', Icon: CalendarPlus, run: onOpenQuickInput },
     { label: '匯出命盤圖片', Icon: Image, run: onOpenExportImage },
     { label: '帶入測試範例', Icon: RotateCcw, run: onLoadDemo },
     { label: '重置為此刻時間', Icon: RefreshCw, run: onClearCache },
+    { label: '使用說明', Icon: HelpCircle, run: () => onOpenInfo('help') },
+    { label: '關於', Icon: Info, run: () => onOpenInfo('about') },
   ];
 
   return (
     <>
-      {/* 動作表 (iOS Action Sheet) */}
+      {/* 更多：底部抽屜 */}
       {isSheetOpen && (
         <div
           className="fixed inset-0 z-[55] bg-black/30 flex items-end sm:items-center justify-center p-2 sm:p-4 font-apple animate-fade-in"
           onClick={() => setIsSheetOpen(false)}
         >
-          <div className="w-full max-w-sm space-y-2 pb-[env(safe-area-inset-bottom)]" onClick={(e) => e.stopPropagation()}>
-            <div className="bg-card/90 backdrop-blur-xl rounded-2xl overflow-hidden divide-y divide-separator/60">
-              <p className="py-3 text-center text-[13px] text-label3">常用功能</p>
-              {/* 外觀：自動／淺色／深色 */}
-              <div className="flex items-center justify-between gap-3 px-4 h-14">
-                <span className="text-[17px] text-label">外觀</span>
-                <div role="radiogroup" aria-label="外觀" className="flex p-0.5 rounded-[9px] bg-[#767680]/12 dark:bg-[#767680]/24">
-                  {([['system', '自動'], ['light', '淺色'], ['dark', '深色']] as const).map(([key, label]) => (
-                    <button
-                      key={key}
-                      type="button"
-                      role="radio"
-                      aria-checked={themePref === key}
-                      onClick={() => onThemeChange(key)}
-                      className={`w-14 h-7 rounded-[7px] text-[13px] transition-all cursor-pointer ${
-                        themePref === key
-                          ? 'bg-white dark:bg-[#636366] text-label font-semibold shadow-[0_3px_8px_rgba(0,0,0,0.12)]'
-                          : 'text-label/80'
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {sheetActions.map(({ label, Icon, run }) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => { setIsSheetOpen(false); run(); }}
-                  className="w-full h-14 flex items-center justify-center gap-2 text-[17px] text-tint active:bg-fill cursor-pointer"
-                >
-                  <Icon className="w-5 h-5" />
-                  {label}
-                </button>
-              ))}
+          <div
+            className="w-full max-w-sm bg-card rounded-[28px] p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pl-3 pr-1 pb-2">
+              <span className="text-[17px] text-label">常用功能</span>
+              <button type="button" onClick={() => setIsSheetOpen(false)} aria-label="關閉" className="w-10 h-10 rounded-full border border-separator flex items-center justify-center text-label hover:bg-fill cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsSheetOpen(false)}
-              className="w-full h-14 bg-card rounded-2xl text-[17px] font-semibold text-tint active:bg-fill cursor-pointer"
-            >
-              取消
-            </button>
+
+            {/* 外觀：自動／淺色／深色 */}
+            <div className="flex items-center justify-between gap-3 px-3 py-2">
+              <span className="text-[15px] text-label2">外觀</span>
+              <div role="radiogroup" aria-label="外觀" className="flex p-1 rounded-full bg-fill">
+                {([['system', '自動'], ['light', '淺色'], ['dark', '深色']] as const).map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="radio"
+                    aria-checked={themePref === key}
+                    onClick={() => onThemeChange(key)}
+                    className={`h-8 px-4 rounded-full text-[13px] transition-colors cursor-pointer ${
+                      themePref === key ? 'bg-panel text-white dark:bg-accent dark:text-on-accent' : 'text-label2 hover:text-label'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <ul className="mt-1">
+              {actions.map(({ label, Icon, run }) => (
+                <li key={label}>
+                  <button
+                    type="button"
+                    onClick={() => { setIsSheetOpen(false); run(); }}
+                    className="w-full flex items-center gap-3 px-2 py-1.5 rounded-full text-[15px] text-label hover:bg-fill active:bg-fill2 cursor-pointer"
+                  >
+                    <span className="w-10 h-10 rounded-full border border-separator flex items-center justify-center text-label2">
+                      <Icon className="w-[18px] h-[18px]" />
+                    </span>
+                    {label}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
 
-      <nav className="fixed bottom-0 inset-x-0 z-50 bg-card/80 backdrop-blur-xl border-t border-separator/60 font-apple select-none pb-[env(safe-area-inset-bottom)]">
-        {/* 工具列：更多｜模式切換｜排盤 */}
-        <div className="max-w-xl mx-auto h-12 px-3 flex items-center justify-between gap-3">
+      {/* 手機：懸浮炭灰膠囊 (桌機的模式切換在頂部導覽列) */}
+      <nav className="sm:hidden fixed inset-x-2 bottom-[max(0.5rem,env(safe-area-inset-bottom))] z-50 font-apple select-none">
+        <div className="dark island h-16 rounded-full bg-card text-label flex items-center gap-1.5 px-2 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
           <button
             type="button"
             onClick={() => setIsSheetOpen(true)}
-            className="flex items-center gap-1 text-[15px] text-tint active:opacity-40 transition-opacity cursor-pointer"
+            aria-label="更多"
+            className="shrink-0 w-12 h-12 rounded-full border border-separator flex items-center justify-center text-label active:bg-fill cursor-pointer"
           >
-            <Ellipsis className="w-5 h-5" /> 更多
+            <Ellipsis className="w-5 h-5" />
           </button>
 
-          {/* 分段控制 (iOS Segmented Control) */}
-          <div role="tablist" aria-label="盤面模式" className="flex p-0.5 rounded-[9px] bg-[#767680]/12 dark:bg-[#767680]/24">
+          <div role="tablist" aria-label="盤面模式" className="flex-1 flex items-center justify-center gap-0.5">
             {MODES.map((m) => (
               <button
                 key={m.key}
@@ -125,10 +123,8 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
                 role="tab"
                 aria-selected={mode === m.key}
                 onClick={() => onModeChange(m.key)}
-                className={`w-16 h-7 rounded-[7px] text-[13px] transition-all cursor-pointer ${
-                  mode === m.key
-                    ? 'bg-white dark:bg-[#636366] text-label font-semibold shadow-[0_3px_8px_rgba(0,0,0,0.12),0_3px_1px_rgba(0,0,0,0.04)]'
-                    : 'text-label/80 active:bg-card/50 dark:active:bg-card/10'
+                className={`h-12 flex-1 max-w-[72px] rounded-full text-[15px] transition-colors cursor-pointer ${
+                  mode === m.key ? 'bg-accent text-on-accent' : 'text-label2 active:bg-fill'
                 }`}
               >
                 {m.label}
@@ -139,31 +135,11 @@ export const BottomControlBar: React.FC<BottomControlBarProps> = ({
           <button
             type="button"
             onClick={onOpenQuickInput}
-            className="flex items-center gap-1 text-[15px] font-semibold text-tint active:opacity-40 transition-opacity cursor-pointer"
+            aria-label="輸入生辰排盤"
+            className="shrink-0 w-12 h-12 rounded-full bg-accent text-on-accent flex items-center justify-center active:brightness-90 cursor-pointer"
           >
-            <CalendarPlus className="w-5 h-5" /> 排盤
+            <CalendarPlus className="w-5 h-5" />
           </button>
-        </div>
-
-        {/* 標籤列 (iOS Tab Bar) */}
-        <div className="max-w-xl mx-auto grid grid-cols-3 h-[50px] border-t border-separator/40">
-          {TABS.map(({ key, label, Icon }) => {
-            const active = activeDockTab === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => onDockTabChange(key)}
-                aria-current={active ? 'page' : undefined}
-                className={`flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium active:opacity-50 transition-opacity cursor-pointer ${
-                  active ? 'text-tint' : 'text-[#999999]'
-                }`}
-              >
-                <Icon className="w-6 h-6" strokeWidth={active ? 2.2 : 1.8} />
-                {label}
-              </button>
-            );
-          })}
         </div>
       </nav>
     </>

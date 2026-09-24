@@ -1,5 +1,5 @@
 import type { ZiweiChartData } from '../types/ziwei';
-import { toRecord, type SavedRecord } from './githubSync';
+import { toRecord, type SavedRecord } from './records';
 import { calculateZiweiChart } from './ziweiEngine';
 
 // 紀錄檔格式：包一層說明，之後格式改版時才認得出來

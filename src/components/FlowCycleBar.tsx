@@ -19,16 +19,16 @@ interface FlowCycleBarProps {
 const HOUR_LABELS = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時', '午時', '未時', '申時', '酉時', '戌時', '亥時'];
 
 const cellClass = (selected: boolean, disabled = false) =>
-  `py-1.5 px-0.5 text-center leading-tight transition-colors ${
+  `shrink-0 rounded-full py-1.5 px-1 text-center leading-tight whitespace-nowrap transition-colors ${
     disabled
-      ? 'bg-card text-label4 cursor-not-allowed'
+      ? 'text-label4 cursor-not-allowed'
       : selected
-        ? 'bg-tint text-white font-semibold cursor-pointer'
-        : 'bg-card text-label active:bg-fill hover:bg-grouped cursor-pointer'
+        ? 'bg-panel text-white dark:bg-accent dark:text-on-accent cursor-pointer'
+        : 'text-label2 hover:bg-card hover:text-label active:bg-fill cursor-pointer'
   }`;
 
 const RowLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="w-11 sm:w-14 shrink-0 bg-card2 border-r border-separator/60 flex items-center justify-center text-center font-semibold text-label2 text-[12px] sm:text-sm leading-tight">
+  <div className="w-10 sm:w-14 shrink-0 text-[12px] sm:text-[13px] text-label3 leading-tight">
     {children}
   </div>
 );
@@ -63,12 +63,12 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
   const pickHour = (hour: number) =>
     onChange({ ...selection, hour: selection.hour === hour ? null : hour });
 
-  const scrollRow = 'flex-1 flex overflow-x-auto divide-x divide-separator/40 no-scrollbar';
+  const scrollRow = 'flex-1 min-w-0 flex gap-0.5 overflow-x-auto no-scrollbar p-1 rounded-full bg-grouped';
 
   return (
-    <div className="w-full rounded-2xl overflow-hidden bg-card text-[11px] sm:text-[13px] my-4 font-apple select-none divide-y divide-separator/60">
+    <div className="w-full rounded-[28px] bg-card p-3 sm:p-4 text-[11px] sm:text-[13px] my-4 font-apple select-none space-y-2">
       {/* 大限 */}
-      <div className="flex">
+      <div className="flex items-center gap-2">
         <RowLabel>大限</RowLabel>
         <div className={scrollRow}>
           <button type="button" onClick={() => pickDecade('child')} className={`min-w-[64px] flex-1 ${cellClass(selection.decadeKey === 'child')}`}>
@@ -84,7 +84,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
       </div>
 
       {/* 流年 */}
-      <div className="flex">
+      <div className="flex items-center gap-2">
         <RowLabel>流年<br />小限</RowLabel>
         <div className={scrollRow}>
           {years.map((y) => (
@@ -99,7 +99,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
       {showDetail && (
         <>
           {/* 流月 */}
-          <div className="flex">
+          <div className="flex items-center gap-2">
             <RowLabel>流月</RowLabel>
             <div className={scrollRow}>
               {LUNAR_MONTH_LABELS.map((label, i) => {
@@ -121,9 +121,9 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
           </div>
 
           {/* 流日：一次列出三十天，不用左右滑 */}
-          <div className="flex">
+          <div className="flex items-center gap-2">
             <RowLabel>流日</RowLabel>
-            <div className="flex-1 grid grid-cols-10 gap-px bg-separator/40">
+            <div className="flex-1 min-w-0 grid grid-cols-10 gap-0.5 p-1 rounded-[22px] bg-grouped">
               {LUNAR_DAY_NAMES.map((label, i) => {
                 const day = i + 1;
                 const disabled = selection.month === null || day > dayCount;
@@ -144,7 +144,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
           </div>
 
           {/* 流時 */}
-          <div className="flex">
+          <div className="flex items-center gap-2">
             <RowLabel>流時</RowLabel>
             <div className={scrollRow}>
               {HOUR_LABELS.map((label, i) => {

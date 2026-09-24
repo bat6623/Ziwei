@@ -100,7 +100,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
     <div className="w-full flex flex-col items-center">
       <div
         data-export="ziwei-grid"
-        className="relative w-full max-w-5xl bg-card p-1 sm:p-2 rounded-xl border border-separator shadow-xs"
+        className="relative w-full max-w-5xl mx-auto bg-card p-1.5 sm:p-3 rounded-[28px]"
       >
         <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-label3 font-serif mb-1">
           <span>南偏東</span>
@@ -111,9 +111,9 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
 
         <div className="relative">
           {/* 細線表格：用 1px 間距露出底色當格線 */}
-          <div className="grid grid-cols-4 gap-px bg-separator border border-separator w-full">
+          <div className="grid grid-cols-4 gap-px bg-separator w-full rounded-[20px] overflow-hidden">
             {(['巳', '午', '未', '申', '辰'] as EarthlyBranch[]).map(renderCell)}
-            <div className="col-span-2 row-span-2 bg-card">
+            <div className="dark island col-span-2 row-span-2 bg-card text-label">
               <CentralPanel data={data} mode={mode} onShift={onShift} />
             </div>
             {(['酉', '卯', '戌', '寅', '丑', '子', '亥'] as EarthlyBranch[]).map(renderCell)}

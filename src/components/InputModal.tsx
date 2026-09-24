@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { BirthInput, Gender } from '../types/ziwei';
-import { Calendar, User, Clock, Sparkles, X, CheckCircle2 } from 'lucide-react';
+import { Clock, X } from 'lucide-react';
 import { LunarMonth } from 'lunar-javascript';
 
 interface InputModalProps {
@@ -122,182 +122,90 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
   // 格式化目前日期供 HTML date 選擇器使用
   const datePickerValue = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
+  const field = 'w-full h-12 rounded-full bg-fill px-5 text-[15px] text-label placeholder:text-label3 outline-none focus:ring-2 focus:ring-accent';
+  const label = 'block mb-1.5 pl-5 text-[13px] text-label3';
+  // 數字欄：留白較少，隱藏上下箭頭，手機上四位數年份才放得下
+  const numField = 'w-full h-12 rounded-full bg-fill pl-3 pr-8 text-center text-[15px] text-label outline-none focus:ring-2 focus:ring-accent [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
+  const track = 'flex p-1 rounded-full bg-grouped';
+  const seg = (on: boolean) =>
+    `flex-1 h-10 rounded-full text-[15px] transition-colors cursor-pointer ${on ? 'bg-panel text-white dark:bg-accent dark:text-on-accent' : 'text-label2 hover:text-label'}`;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="bg-card border border-separator rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl my-auto">
-        {/* Modal Header */}
-        <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 p-4 border-b border-amber-400 flex justify-between items-center text-white">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-100" />
-            <h3 className="text-lg font-bold font-serif tracking-wide">輸入生辰八字排盤</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-amber-100 hover:text-white p-1 rounded-lg hover:bg-amber-600 transition"
-          >
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-2 sm:p-4 bg-black/40 backdrop-blur-sm animate-fade-in overflow-y-auto font-apple" onClick={onClose}>
+      <div className="bg-card w-full max-w-lg rounded-[28px] my-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3 px-5 pt-5">
+          <h3 className="flex-1 text-[28px] font-light tracking-tight text-label">輸入生辰</h3>
+          <button type="button" onClick={handleFillNow} className="h-10 px-4 rounded-full border border-separator text-[13px] text-label flex items-center gap-1.5 hover:bg-fill cursor-pointer">
+            <Clock className="w-4 h-4" /> 此刻
+          </button>
+          <button type="button" onClick={onClose} aria-label="關閉" className="w-10 h-10 rounded-full border border-separator text-label flex items-center justify-center hover:bg-fill cursor-pointer">
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-label">
-          {/* 快選按鈕工具列 */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator pb-3">
-            <span className="text-xs font-bold text-label3">快捷操作：</span>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleFillNow}
-                className="text-xs bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 px-3 py-1 rounded-full flex items-center gap-1 transition font-bold"
-              >
-                <Clock className="w-3.5 h-3.5 text-cyan-600" />
-                填入此刻時間
-              </button>
-            </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-label">
+          <div>
+            <label className={label} htmlFor="birth-name">姓名</label>
+            <input id="birth-name" type="text" value={name} onChange={(e) => setName(e.target.value)} className={field} placeholder="選填，留空會顯示「未命名」" />
           </div>
 
-          {/* 姓名與性別 */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-label2 mb-1 flex items-center gap-1">
-                <User className="w-3.5 h-3.5 text-amber-600" /> 姓名 / 代稱
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-grouped border border-separator rounded-lg px-3 py-2 text-label text-sm focus:outline-none focus:border-amber-500 focus:bg-card"
-                placeholder="選填，留空會顯示「未命名」"
-              />
+              <span className={label}>性別</span>
+              <div className={track}>
+                <button type="button" onClick={() => setGender('male')} className={seg(gender === 'male')}>乾造 男</button>
+                <button type="button" onClick={() => setGender('female')} className={seg(gender === 'female')}>坤造 女</button>
+              </div>
             </div>
             <div>
-              <label className="block text-xs font-bold text-label2 mb-1">性別</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setGender('male')}
-                  className={`py-2 text-xs font-bold rounded-lg border transition ${
-                    gender === 'male'
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                      : 'bg-fill text-label2 border-separator'
-                  }`}
-                >
-                  乾造 (男)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setGender('female')}
-                  className={`py-2 text-xs font-bold rounded-lg border transition ${
-                    gender === 'female'
-                      ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                      : 'bg-fill text-label2 border-separator'
-                  }`}
-                >
-                  坤造 (女)
-                </button>
+              <span className={label}>曆法</span>
+              <div className={track}>
+                <button type="button" onClick={() => setIsLunar(false)} className={seg(!isLunar)}>國曆</button>
+                <button type="button" onClick={() => setIsLunar(true)} className={seg(isLunar)}>農曆</button>
               </div>
             </div>
           </div>
 
-          {/* 出生曆法 */}
           <div>
-            <label className="block text-xs font-bold text-label2 mb-1">出生曆法</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setIsLunar(false)}
-                className={`py-2 text-xs font-bold rounded-lg border transition ${
-                  !isLunar
-                    ? 'bg-cyan-600 text-white border-cyan-700 shadow-xs'
-                    : 'bg-fill text-label2 border-separator'
-                }`}
-              >
-                陽曆 (西元)
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsLunar(true)}
-                className={`py-2 text-xs font-bold rounded-lg border transition ${
-                  isLunar
-                    ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                    : 'bg-fill text-label2 border-separator'
-                }`}
-              >
-                農曆 (陰曆)
-              </button>
-            </div>
-          </div>
-
-          {/* 日期快選 (含日曆 Pickers) */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-label2 flex items-center gap-1">
-                <Calendar className="w-3.5 h-3.5 text-amber-600" /> 出生年月日
-              </label>
+            <div className="flex items-center justify-between pr-2">
+              <span className={label}>出生年月日{isLunar ? '（農曆）' : ''}</span>
               {/* 原生日曆快選 (國曆日曆，農曆模式不適用) */}
-              {!isLunar && <div className="flex items-center gap-1">
-                <span className="text-[11px] text-label3">日曆點選:</span>
+              {!isLunar && (
                 <input
                   type="date"
                   value={datePickerValue}
                   onChange={handleDateChange}
-                  className="text-xs bg-fill border border-separator rounded px-2 py-0.5 text-label2 cursor-pointer focus:outline-none"
+                  aria-label="用日曆選日期"
+                  className="mb-1.5 h-8 rounded-full bg-fill px-3 text-[13px] text-label2 outline-none cursor-pointer"
                 />
-              </div>}
+              )}
             </div>
-
             <div className="grid grid-cols-3 gap-2">
-              <div>
-                <span className="text-[10px] text-label3">年</span>
-                <input
-                  type="number"
-                  value={year}
-                  onChange={(e) => setYear(Number(e.target.value))}
-                  min={1900}
-                  max={2100}
-                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-              <div>
-                <span className="text-[10px] text-label3">月</span>
-                <input
-                  type="number"
-                  value={month}
-                  onChange={(e) => setMonth(Number(e.target.value))}
-                  min={1}
-                  max={12}
-                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-              <div>
-                <span className="text-[10px] text-label3">日</span>
-                <input
-                  type="number"
-                  value={day}
-                  onChange={(e) => setDay(Number(e.target.value))}
-                  min={1}
-                  max={31}
-                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
+              {([['年', year, setYear, 1900, 2100], ['月', month, setMonth, 1, 12], ['日', day, setDay, 1, 31]] as const).map(([unit, value, set, min, max]) => (
+                <label key={unit} className="relative">
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => set(Number(e.target.value))}
+                    min={min}
+                    max={max}
+                    required
+                    className={numField}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] text-label3 pointer-events-none">{unit}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          {/* 十二地支時辰快捷選擇器 */}
-          <div className="space-y-2 border-t border-separator pt-3">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-label2 flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5 text-amber-600" /> 出生時辰快捷點選 (十二地支)
-              </label>
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-400/10 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/30">
-                目前選定：{currentZodiac} ({String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')})
+          <div>
+            <div className="flex items-center justify-between pr-2">
+              <span className={label}>出生時辰</span>
+              <span className="mb-1.5 text-[13px] text-label2">
+                {currentZodiac}・{String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')}
               </span>
             </div>
-
-            {/* 地支時辰快選按鈕網格 (4x3 Grid) */}
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5 p-1.5 rounded-[24px] bg-grouped">
               {ZODIAC_HOURS.map((item) => {
                 const isSelected = currentZodiac === item.name;
                 return (
@@ -305,66 +213,43 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                     key={item.name}
                     type="button"
                     onClick={() => handleSelectZodiacHour(item.hour)}
-                    className={`flex flex-col items-center justify-center p-1.5 rounded-lg border transition text-center cursor-pointer ${
-                      isSelected
-                        ? 'bg-amber-500 text-white border-amber-600 shadow-xs font-black'
-                        : 'bg-grouped hover:bg-amber-50 text-label2 border-separator hover:border-amber-300'
+                    className={`flex flex-col items-center justify-center py-1.5 rounded-full transition-colors cursor-pointer ${
+                      isSelected ? 'bg-panel text-white dark:bg-accent dark:text-on-accent' : 'text-label2 hover:bg-card'
                     }`}
                   >
-                    <span className="text-xs font-bold font-serif flex items-center gap-0.5">
-                      {item.name}
-                      {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
-                    </span>
-                    <span className={`text-[9px] ${isSelected ? 'text-amber-100' : 'text-label3'}`}>
-                      {item.range}
-                    </span>
+                    <span className="text-[15px]">{item.name}</span>
+                    <span className={`text-[10px] ${isSelected ? 'text-white/70 dark:text-on-accent/70' : 'text-label3'}`}>{item.range.replace(/ /g, '')}</span>
                   </button>
                 );
               })}
             </div>
-
-            {/* 精細小時/分鐘數字調校 */}
-            <div className="grid grid-cols-2 gap-3 pt-1">
-              <div>
-                <label className="block text-[11px] font-bold text-label3 mb-1">小時 (0~23 時)</label>
-                <input
-                  type="number"
-                  value={hour}
-                  onChange={(e) => setHour(Number(e.target.value))}
-                  min={0}
-                  max={23}
-                  className="w-full bg-grouped border border-separator rounded-lg px-3 py-1.5 text-label text-sm text-center font-mono focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[11px] font-bold text-label3 mb-1">分鐘 (0~59 分)</label>
-                <input
-                  type="number"
-                  value={minute}
-                  onChange={(e) => setMinute(Number(e.target.value))}
-                  min={0}
-                  max={59}
-                  className="w-full bg-grouped border border-separator rounded-lg px-3 py-1.5 text-label text-sm text-center font-mono focus:outline-none focus:border-amber-500"
-                  required
-                />
-              </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {([['時', hour, setHour, 0, 23], ['分', minute, setMinute, 0, 59]] as const).map(([unit, value, set, min, max]) => (
+                <label key={unit} className="relative">
+                  <input
+                    type="number"
+                    value={value}
+                    onChange={(e) => set(Number(e.target.value))}
+                    min={min}
+                    max={max}
+                    required
+                    className={numField}
+                  />
+                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[13px] text-label3 pointer-events-none">{unit}</span>
+                </label>
+              ))}
             </div>
           </div>
 
-          {/* 排盤提交按鈕 */}
-          <div className="pt-3 border-t border-separator">
-            {error && (
-              <p role="alert" className="mb-2 text-xs font-bold text-rose-600 dark:text-rose-400 text-center">{error}</p>
-            )}
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-black py-3 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2 text-base tracking-widest cursor-pointer"
-            >
-              <Sparkles className="w-5 h-5 fill-white" />
-              開始精準紫微排盤
-            </button>
-          </div>
+          {error && (
+            <p role="alert" className="text-[13px] text-danger text-center">{error}</p>
+          )}
+          <button
+            type="submit"
+            className="w-full h-12 rounded-full bg-accent text-on-accent text-[17px] font-medium hover:brightness-95 active:brightness-90 transition cursor-pointer"
+          >
+            開始排盤
+          </button>
         </form>
       </div>
     </div>

@@ -90,7 +90,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       onClick={() => onSelect(palace)}
       data-palace-index={palace.index}
       className={`relative flex flex-col p-0.5 sm:p-1 min-h-[150px] sm:min-h-[200px] cursor-pointer select-none transition-colors ${
-        isSelected ? 'bg-amber-50 dark:bg-amber-400/10' : 'bg-card hover:bg-grouped'
+        isSelected ? 'bg-accent/25 dark:bg-accent/10' : 'bg-card hover:bg-grouped'
       }`}
     >
       {/* 星曜：直排，一欄一顆 */}

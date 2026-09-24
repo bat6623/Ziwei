@@ -17,7 +17,7 @@ function loadPref(): ThemePref {
 function apply(pref: ThemePref) {
   const dark = pref === 'dark' || (pref === 'system' && media().matches);
   document.documentElement.classList.toggle('dark', dark);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#000000' : '#f2f2f7');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#151514' : '#e9e8e1');
 }
 
 /** 深淺色偏好：自動 (跟系統)／淺色／深色，記在這台裝置 */
