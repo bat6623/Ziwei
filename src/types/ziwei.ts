@@ -60,6 +60,13 @@ export interface PalaceData {
   decadalStemBranch?: string;
   smallLimitYears: number[];
   lunarMonthName: string;
+
+  // 動態流運標籤與四化
+  isCurrentFlowYearPalace?: boolean;
+  isCurrentDecadalPalace?: boolean;
+  dynamicDecadalName?: string;
+  dynamicFlowYearName?: string;
+  flowMutagens?: { starName: string; mutagen: Mutagen; label: string }[];
 }
 
 export interface FourPillars {
@@ -112,6 +119,7 @@ export interface ZiweiChartData {
     startAgeDetail: string;
     currentDecade: string;
     currentFlowYear: string;
+    activeFlowCycleInfo?: string;
     luckCycles: LuckCycleStep[];
   };
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { calculateZiweiChart } from './utils/ziweiEngine';
+import { calculateZiweiChart, updateChartFlowCycle } from './utils/ziweiEngine';
 import type { ZiweiChartData, BirthInput, PalaceData, ChartTabMode } from './types/ziwei';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
@@ -68,6 +68,18 @@ export function App() {
     } else {
       setInfoModalTab(null);
     }
+  };
+
+  const handleFlowCycleChange = (params: {
+    decadeKey: string;
+    year: number;
+    month: string;
+    day: string;
+    hour: string;
+  }) => {
+    setChartData((prev) =>
+      updateChartFlowCycle(prev, params.year, params.decadeKey, params.month, params.day, params.hour)
+    );
   };
 
   // 模式提示字串
@@ -145,7 +157,7 @@ export function App() {
 
         {/* 下方流運切換面板 (大限, 流年/小限, 流月, 流日, 流時) */}
         <div className="w-full max-w-5xl">
-          <FlowCycleBar data={chartData} />
+          <FlowCycleBar data={chartData} onFlowCycleChange={handleFlowCycleChange} />
         </div>
 
         {/* 儲存與圖片匯出管理區 */}

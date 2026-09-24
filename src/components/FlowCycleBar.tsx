@@ -4,11 +4,13 @@ import { ChevronRight } from 'lucide-react';
 
 interface FlowCycleBarProps {
   data: ZiweiChartData;
-  onSelectDecade?: (decadeStr: string) => void;
-  onSelectYear?: (year: number) => void;
-  onSelectMonth?: (month: string) => void;
-  onSelectDay?: (day: string) => void;
-  onSelectHour?: (hour: string) => void;
+  onFlowCycleChange?: (params: {
+    decadeKey: string;
+    year: number;
+    month: string;
+    day: string;
+    hour: string;
+  }) => void;
 }
 
 interface DecadeItem {
@@ -20,11 +22,7 @@ interface DecadeItem {
 
 export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({
   data,
-  onSelectDecade,
-  onSelectYear,
-  onSelectMonth,
-  onSelectDay,
-  onSelectHour,
+  onFlowCycleChange,
 }) => {
   const currentYear = new Date().getFullYear();
   const birthYear = data.userInfo.fourPillars ? parseInt(data.userInfo.solarBirth.split('/')[0]) || (currentYear - 30) : currentYear - 30;
@@ -56,7 +54,6 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({
   const flowYears = Array.from({ length: 10 }, (_, i) => {
     const yr = currentYear - 4 + i;
     const age = yr - birthYear + 1;
-    // 天干地支年名簡化
     const stems = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
     const branches = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
     const stemName = stems[(yr - 4) % 10];
@@ -86,29 +83,35 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({
     '午時', '未時', '申時', '酉時', '戌時', '亥時'
   ];
 
+  const notifyChange = (dKey: string, yr: number, m: string, d: string, h: string) => {
+    if (onFlowCycleChange) {
+      onFlowCycleChange({ decadeKey: dKey, year: yr, month: m, day: d, hour: h });
+    }
+  };
+
   const handleDecadeClick = (key: string) => {
     setSelectedDecade(key);
-    if (onSelectDecade) onSelectDecade(key);
+    notifyChange(key, selectedYear, selectedMonth, selectedDay, selectedHour);
   };
 
   const handleYearClick = (yr: number) => {
     setSelectedYear(yr);
-    if (onSelectYear) onSelectYear(yr);
+    notifyChange(selectedDecade, yr, selectedMonth, selectedDay, selectedHour);
   };
 
   const handleMonthClick = (m: string) => {
     setSelectedMonth(m);
-    if (onSelectMonth) onSelectMonth(m);
+    notifyChange(selectedDecade, selectedYear, m, selectedDay, selectedHour);
   };
 
   const handleDayClick = (d: string) => {
     setSelectedDay(d);
-    if (onSelectDay) onSelectDay(d);
+    notifyChange(selectedDecade, selectedYear, selectedMonth, d, selectedHour);
   };
 
   const handleHourClick = (h: string) => {
     setSelectedHour(h);
-    if (onSelectHour) onSelectHour(h);
+    notifyChange(selectedDecade, selectedYear, selectedMonth, selectedDay, h);
   };
 
   return (

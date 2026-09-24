@@ -107,14 +107,27 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
 
       {/* 中間星曜區 (主星 / 六吉六凶 / 乙級星) */}
       <div className="grid grid-cols-2 gap-1 my-1 flex-1">
-        {/* 左欄：甲級主星 */}
+          {/* 左欄：甲級主星 */}
         <div className="flex flex-col gap-0.5 border-r border-slate-100 pr-1">
           {palace.mainStars.map((star) => (
             <div key={star.id} className="flex items-center justify-between text-xs sm:text-sm font-black tracking-tight">
-              <span className="text-purple-900 flex items-center flex-wrap">
+              <span className="text-purple-900 flex items-center flex-wrap gap-0.5">
                 {star.name}
                 {getMutagenBadge(star.mutagen)}
                 {getSelfMutagenBadge(star.selfMutagen)}
+                {/* 動態大限/流年四化 */}
+                {palace.flowMutagens?.filter((fm) => fm.starName === star.name).map((fm, idx) => (
+                  <span
+                    key={idx}
+                    className={`inline-flex items-center px-0.5 py-0.2 text-[8.5px] font-bold rounded shadow-2xs ${
+                      fm.label.startsWith('大')
+                        ? 'bg-purple-700 text-white border border-purple-800'
+                        : 'bg-amber-600 text-white border border-amber-700'
+                    }`}
+                  >
+                    {fm.label}
+                  </span>
+                ))}
               </span>
               <span className={`text-[9.5px] ${getBrightnessColor(star.brightness)}`}>
                 {star.brightness}
@@ -131,10 +144,22 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
           {/* 吉星 (藍色) */}
           <div className="flex flex-wrap gap-x-0.5 gap-y-0.5">
             {palace.luckyStars.map((star) => (
-              <span key={star.id} className="text-sky-700 font-bold inline-flex items-center">
+              <span key={star.id} className="text-sky-700 font-bold inline-flex items-center gap-0.5">
                 {star.name}
                 {getMutagenBadge(star.mutagen)}
                 {getSelfMutagenBadge(star.selfMutagen)}
+                {palace.flowMutagens?.filter((fm) => fm.starName === star.name).map((fm, idx) => (
+                  <span
+                    key={idx}
+                    className={`inline-flex items-center px-0.5 py-0.2 text-[8.5px] font-bold rounded shadow-2xs ${
+                      fm.label.startsWith('大')
+                        ? 'bg-purple-700 text-white'
+                        : 'bg-amber-600 text-white'
+                    }`}
+                  >
+                    {fm.label}
+                  </span>
+                ))}
               </span>
             ))}
           </div>
@@ -152,10 +177,26 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({
       {/* 底部：大限/流年縮寫、大限歲數、農曆月份、天干地支 */}
       <div className="flex justify-between items-end text-[10px] sm:text-[11px] pt-1 border-t border-slate-100 mt-auto">
         <div className="flex flex-col text-slate-500">
-          {/* 大限與流年宮位簡稱 (如 年兄 大遷) */}
-          <div className="flex items-center gap-1 text-[9px] text-amber-800 font-bold">
-            <span className="bg-amber-50 border border-amber-200 px-0.5 rounded">{palace.flowYearPalaceName}</span>
-            <span className="bg-slate-50 border border-slate-200 px-0.5 rounded">{palace.decadalPalaceName}</span>
+          {/* 大限與流年宮位簡稱 (如 年命 大命) */}
+          <div className="flex items-center gap-1 text-[9px] font-bold">
+            <span
+              className={`px-1 py-0.2 rounded ${
+                palace.isCurrentFlowYearPalace
+                  ? 'bg-amber-600 text-white font-extrabold shadow-2xs border border-amber-700'
+                  : 'bg-amber-50 text-amber-900 border border-amber-200'
+              }`}
+            >
+              {palace.dynamicFlowYearName || palace.flowYearPalaceName}
+            </span>
+            <span
+              className={`px-1 py-0.2 rounded ${
+                palace.isCurrentDecadalPalace
+                  ? 'bg-purple-700 text-white font-extrabold shadow-2xs border border-purple-800'
+                  : 'bg-slate-100 text-slate-700 border border-slate-200'
+              }`}
+            >
+              {palace.dynamicDecadalName || palace.decadalPalaceName}
+            </span>
           </div>
           <span className="font-mono text-[10px] font-bold text-slate-600 mt-0.5">
             {palace.decadalRange[0]}~{palace.decadalRange[1]}

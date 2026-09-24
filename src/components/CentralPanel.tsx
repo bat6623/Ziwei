@@ -139,6 +139,12 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, selectedPalace
           </span>
         </div>
 
+        {userInfo.activeFlowCycleInfo && (
+          <div className="text-center bg-blue-600 text-white rounded py-0.5 px-1 text-[9.5px] font-bold shadow-2xs">
+            {userInfo.activeFlowCycleInfo}
+          </div>
+        )}
+
         <div className="flex justify-center items-center gap-2 text-[9.5px] text-slate-600 bg-white py-0.5 rounded border border-slate-200">
           <span className="text-slate-500">自化圖示：</span>
           <span className="text-emerald-600 font-bold">→祿</span>

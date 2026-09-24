@@ -524,3 +524,100 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     palaces
   };
 }
+
+export function updateChartFlowCycle(
+  chartData: ZiweiChartData,
+  targetYear: number,
+  targetDecadeKey?: string,
+  targetMonth?: string,
+  targetDay?: string,
+  targetHour?: string
+): ZiweiChartData {
+  const birthYear = parseInt(chartData.userInfo.solarBirth.split('-')[0]) || (targetYear - 30);
+  const nominalAge = Math.max(1, targetYear - birthYear + 1);
+
+  const stems: HeavenlyStem[] = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'];
+  const branches: EarthlyBranch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
+
+  const flowYearStemIdx = (targetYear - 4) % 10 < 0 ? ((targetYear - 4) % 10 + 10) % 10 : (targetYear - 4) % 10;
+  const flowYearBranchIdx = (targetYear - 4) % 12 < 0 ? ((targetYear - 4) % 12 + 12) % 12 : (targetYear - 4) % 12;
+
+  const flowYearStem = stems[flowYearStemIdx];
+  const flowYearBranch = branches[flowYearBranchIdx];
+
+  // 尋找大限宮位
+  let decadalPalace = chartData.palaces.find((p) => {
+    if (targetDecadeKey && targetDecadeKey !== 'child') {
+      return `${p.decadalRange[0]}-${p.decadalRange[1]}` === targetDecadeKey;
+    }
+    return nominalAge >= p.decadalRange[0] && nominalAge <= p.decadalRange[1];
+  });
+  if (!decadalPalace) decadalPalace = chartData.palaces[0];
+
+  const decadalStem = decadalPalace.stem;
+
+  const flowYearMutagens = FOUR_MUTAGENS_MAP[flowYearStem];
+  const decadalMutagens = FOUR_MUTAGENS_MAP[decadalStem];
+
+  const shortNames = ['命', '兄', '夫', '子', '財', '疾', '遷', '友', '官', '田', '福', '父'];
+
+  const decadalBranchIdx = BRANCHES_ORDER.indexOf(decadalPalace.branch);
+  const flowYearBranchOrderIdx = BRANCHES_ORDER.indexOf(flowYearBranch);
+
+  const updatedPalaces = chartData.palaces.map((palace) => {
+    const pIdx = BRANCHES_ORDER.indexOf(palace.branch);
+
+    const dOffset = (pIdx - decadalBranchIdx + 12) % 12;
+    const dynamicDecadalName = `大${shortNames[dOffset]}`;
+
+    const fOffset = (pIdx - flowYearBranchOrderIdx + 12) % 12;
+    const dynamicFlowYearName = `年${shortNames[fOffset]}`;
+
+    const flowMutagensList: { starName: string; mutagen: Mutagen; label: string }[] = [];
+
+    // 大限四化 (大祿, 大權, 大科, 大忌)
+    if (decadalMutagens) {
+      for (const [m, sName] of Object.entries(decadalMutagens)) {
+        const hasStar = [...palace.mainStars, ...palace.luckyStars].some((s) => s.name === sName);
+        if (hasStar) {
+          flowMutagensList.push({ starName: sName, mutagen: m as Mutagen, label: `大${m}` });
+        }
+      }
+    }
+
+    // 流年四化 (流祿, 流權, 流科, 流忌)
+    if (flowYearMutagens) {
+      for (const [m, sName] of Object.entries(flowYearMutagens)) {
+        const hasStar = [...palace.mainStars, ...palace.luckyStars].some((s) => s.name === sName);
+        if (hasStar) {
+          flowMutagensList.push({ starName: sName, mutagen: m as Mutagen, label: `流${m}` });
+        }
+      }
+    }
+
+    return {
+      ...palace,
+      isCurrentFlowYearPalace: palace.branch === flowYearBranch,
+      isCurrentDecadalPalace: palace.branch === decadalPalace?.branch,
+      dynamicDecadalName,
+      dynamicFlowYearName,
+      flowMutagens: flowMutagensList,
+    };
+  });
+
+  const activeFlowCycleInfo = `當前演算：${targetYear} ${flowYearStem}${flowYearBranch}流年 (虛歲${nominalAge}歲) • ${decadalStem}${decadalPalace.branch}大限 (${decadalPalace.decadalRange[0]}~${decadalPalace.decadalRange[1]}歲)${
+    targetMonth ? ` • ${targetMonth}` : ''
+  }${targetDay ? ` • ${targetDay}` : ''}${targetHour ? ` • ${targetHour}` : ''}`;
+
+  return {
+    ...chartData,
+    userInfo: {
+      ...chartData.userInfo,
+      currentFlowYear: `${targetYear} ${flowYearStem}${flowYearBranch}年 虛歲${nominalAge}歲`,
+      currentDecade: `${decadalPalace.decadalRange[0]}-${decadalPalace.decadalRange[1]} 歲`,
+      activeFlowCycleInfo,
+    },
+    palaces: updatedPalaces,
+  };
+}
+
