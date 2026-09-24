@@ -113,7 +113,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
         {mode === 'feixing' && (
           <>
             <Chip color={MUTAGEN_COLOR['祿']} text="生年四化" />
-            <Chip color={MUTAGEN_COLOR['祿']} outline text="選取宮位的飛化" />
+            <Chip color={MUTAGEN_COLOR['權']} text="宮干飛化：星曜上色＋箭頭" />
           </>
         )}
         {mode === 'sihua' && <span>連線：生年四化所在宮 → 對宮</span>}

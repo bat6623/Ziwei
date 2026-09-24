@@ -1,7 +1,7 @@
 {
   "name": "ziwei",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "homepage": "https://bat6623.github.io/Ziwei/",
   "scripts": {
@@ -9,8 +9,9 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "predeploy": "npm version patch --no-git-tag-version && npm run build",
-    "deploy": "gh-pages -d dist"
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
+    "bump": "npm version patch --no-git-tag-version"
   },
   "dependencies": {
     "html2canvas-pro": "^2.4.5",

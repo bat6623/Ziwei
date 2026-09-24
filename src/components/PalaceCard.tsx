@@ -55,18 +55,18 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       if (star.selfMutagen) {
         badges.push(<Badge key="self" text={star.selfMutagen} color={MUTAGEN_COLOR[star.selfMutagen]} outline />);
       }
-    } else {
-      flyingMarks?.[star.name]?.forEach((m) => {
-        badges.push(<Badge key={`fly-${m}`} text={m} color={MUTAGEN_COLOR[m]} outline big />);
-      });
     }
     return badges;
   };
 
-  const renderStar = (star: Star, small: boolean) => (
+  const renderStar = (star: Star, small: boolean) => {
+    // 飛星模式：被選取宮位飛到的星，整塊填上該四化的顏色
+    const fly = isFeixing ? flyingMarks?.[star.name]?.[0] : undefined;
+    return (
     <div key={star.id} className="flex flex-col items-center gap-px">
       <span
-        className={`[writing-mode:vertical-rl] font-bold leading-[1.05] ${starColor(star, small)} ${
+        style={fly ? { backgroundColor: MUTAGEN_COLOR[fly], color: '#fff' } : undefined}
+        className={`[writing-mode:vertical-rl] font-bold leading-[1.05] ${fly ? 'rounded-[3px] py-0.5' : starColor(star, small)} ${
           isFeixing
             ? 'text-[15px] sm:text-[22px]'
             : small
@@ -81,7 +81,8 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       )}
       {renderBadges(star)}
     </div>
-  );
+    );
+  };
 
   const isEmpty = palace.mainStars.length === 0;
 
@@ -89,6 +90,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
     <div
       onClick={() => onSelect(palace)}
       data-palace-index={palace.index}
+      data-branch={palace.branch}
       className={`relative flex flex-col p-1 sm:p-1.5 min-h-[150px] sm:min-h-[200px] cursor-pointer select-none transition-colors ${
         isSelected ? 'bg-accent/25 dark:bg-accent/10' : 'bg-card hover:bg-grouped'
       }`}
