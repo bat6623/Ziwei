@@ -9,7 +9,8 @@ import type {
   Star,
   Brightness,
   Mutagen,
-  Yinyang
+  Yinyang,
+  LuckCycleStep
 } from '../types/ziwei';
 
 export const BRANCHES_ORDER: EarthlyBranch[] = ['巳', '午', '未', '申', '酉', '戌', '亥', '子', '丑', '寅', '卯', '辰'];
@@ -20,7 +21,6 @@ const BRANCH_INDEX: Record<EarthlyBranch, number> = {
   '丑': 8, '寅': 9, '卯': 10, '辰': 11
 };
 
-// 八卦與傳統地理方位表
 const DIRECTION_MAP: Record<EarthlyBranch, { direction: string; trigram: string }> = {
   '巳': { direction: '南偏東', trigram: '巽宮' },
   '午': { direction: '正南方', trigram: '離宮' },
@@ -42,6 +42,12 @@ const PALACE_NAMES_ORDER: PalaceName[] = [
   '命宮', '兄弟', '夫妻', '子女', '財帛', '疾厄',
   '遷移', '交友', '官祿', '田宅', '福德', '父母'
 ];
+
+const SHORT_PALACE_NAMES: Record<PalaceName, string> = {
+  '命宮': '命', '兄弟': '兄', '夫妻': '夫', '子女': '子',
+  '財帛': '財', '疾厄': '疾', '遷移': '遷', '交友': '友',
+  '官祿': '官', '田宅': '田', '福德': '福', '父母': '父'
+};
 
 const MASTER_STAR_MAP: Record<EarthlyBranch, string> = {
   '子': '貪狼', '丑': '巨門', '寅': '祿存', '卯': '文曲',
@@ -123,6 +129,23 @@ function getFiveElement(stem: HeavenlyStem, branch: EarthlyBranch): { name: stri
 
   const key = `${stem}${branch}`;
   return table[key] || { name: '水二局', number: 2 };
+}
+
+// 十神計算輔助表
+function getTenGod(dayStem: string, targetStem: string): string {
+  const map: Record<string, Record<string, string>> = {
+    '甲': { '甲': '比肩', '乙': '劫財', '丙': '食神', '丁': '傷官', '戊': '偏財', '己': '正財', '庚': '七殺', '辛': '正官', '壬': '偏印', '癸': '正印' },
+    '乙': { '甲': '劫財', '乙': '比肩', '丙': '傷官', '丁': '食神', '戊': '正財', '己': '偏財', '庚': '正官', '辛': '七殺', '壬': '正印', '癸': '偏印' },
+    '丙': { '甲': '偏印', '乙': '正印', '丙': '比肩', '丁': '劫財', '戊': '食神', '己': '傷官', '庚': '偏財', '辛': '正財', '壬': '七殺', '癸': '正官' },
+    '丁': { '甲': '正印', '乙': '偏印', '丙': '劫財', '丁': '比肩', '戊': '傷官', '己': '食神', '庚': '正財', '辛': '偏財', '壬': '正官', '癸': '七殺' },
+    '戊': { '甲': '七殺', '乙': '正官', '丙': '偏印', '丁': '正印', '戊': '比肩', '己': '劫財', '庚': '食神', '辛': '傷官', '壬': '偏財', '癸': '正財' },
+    '己': { '甲': '正官', '乙': '七殺', '丙': '正印', '丁': '偏印', '戊': '劫財', '己': '比肩', '庚': '傷官', '辛': '食神', '壬': '正財', '癸': '偏財' },
+    '庚': { '甲': '偏財', '乙': '正財', '丙': '七殺', '丁': '正官', '戊': '偏印', '己': '正印', '庚': '比肩', '辛': '劫財', '壬': '食神', '癸': '傷官' },
+    '辛': { '甲': '正財', '乙': '偏財', '丙': '正官', '丁': '七殺', '戊': '正印', '己': '偏印', '庚': '劫財', '辛': '比肩', '壬': '傷官', '癸': '食神' },
+    '壬': { '甲': '食神', '乙': '傷官', '丙': '偏財', '丁': '正財', '戊': '七殺', '己': '正官', '庚': '偏印', '辛': '正印', '壬': '比肩', '癸': '劫財' },
+    '癸': { '甲': '傷官', '乙': '食神', '丙': '正財', '丁': '偏財', '戊': '正官', '己': '七殺', '庚': '正印', '辛': '偏印', '壬': '劫財', '癸': '比肩' }
+  };
+  return map[dayStem]?.[targetStem] || '比肩';
 }
 
 export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
@@ -211,26 +234,26 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
 
   const yearMutagens = FOUR_MUTAGENS_MAP[yearStem];
 
-  // 1. 紅鸞天喜 (依年支)
+  // 1. 紅鸞天喜
   const hongluanZhiIndex = (3 - yearZhiIndex + 12) % 12;
   const tianxiZhiIndex = (hongluanZhiIndex + 6) % 12;
   const hongluanZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][hongluanZhiIndex];
   const tianxiZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianxiZhiIndex];
 
-  // 2. 天刑天姚 (依農曆月)
+  // 2. 天刑天姚
   const tianxingZhiIndex = (9 + (lunarMonth - 1)) % 12;
   const tianyaoZhiIndex = (1 + (lunarMonth - 1)) % 12;
   const tianxingZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianxingZhiIndex];
   const tianyaoZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][tianyaoZhiIndex];
 
-  // 3. 孤辰寡宿 (依年支)
+  // 3. 孤辰寡宿
   let guchenZhi = '寅', guasuZhi = '戌';
   if (['亥','子','丑'].includes(yearBranch)) { guchenZhi = '寅'; guasuZhi = '戌'; }
   else if (['寅','卯','辰'].includes(yearBranch)) { guchenZhi = '巳'; guasuZhi = '丑'; }
   else if (['巳','午','未'].includes(yearBranch)) { guchenZhi = '申'; guasuZhi = '辰'; }
   else if (['申','酉','戌'].includes(yearBranch)) { guchenZhi = '亥'; guasuZhi = '未'; }
 
-  // 4. 龍池鳳閣 (依年支)
+  // 4. 龍池鳳閣
   const longchiZhiIndex = (4 + yearZhiIndex) % 12;
   const fenggeZhiIndex = (10 - yearZhiIndex + 12) % 12;
   const longchiZhi = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][longchiZhiIndex];
@@ -260,7 +283,13 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     const palaceNameOffset = (BRANCH_INDEX[branch] - BRANCH_INDEX[mingBranch] + 12) % 12;
     const name = PALACE_NAMES_ORDER[palaceNameOffset];
     const isBodyPalace = branch === shenBranch;
+    const isLaiYinPalace = stem === yearStem; // 生年天干與宮位天干相同即為【來因宮】
     const dirInfo = DIRECTION_MAP[branch];
+
+    // 流年與大限縮寫對照 (如: 年兄, 大遷)
+    const shortName = SHORT_PALACE_NAMES[name];
+    const flowYearPalaceName = `年${shortName}`;
+    const decadalPalaceName = `大${shortName}`;
 
     // 主星 (甲級)
     const mainStars: Star[] = [];
@@ -270,12 +299,21 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
         for (const [m, sName] of Object.entries(yearMutagens)) {
           if (sName === starName) mutagen = m as Mutagen;
         }
+
+        // 檢查宮幹引發的自化 (宮幹四化)
+        const palaceMutagens = FOUR_MUTAGENS_MAP[stem];
+        let selfMutagen: Mutagen | undefined = undefined;
+        for (const [m, sName] of Object.entries(palaceMutagens)) {
+          if (sName === starName) selfMutagen = m as Mutagen;
+        }
+
         mainStars.push({
           id: `${starName}-${branch}`,
           name: starName,
           type: 'main',
           brightness: BRIGHTNESS_MAP[starName]?.[branch] || '',
           mutagen,
+          selfMutagen,
           colorCategory: starName === '紫微' || starName === '天府' ? 'purple' : 'red'
         });
       }
@@ -328,7 +366,6 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       luckyStars.push({ id: `lucun-${branch}`, name: '祿存', type: 'lucky', colorCategory: 'gold' });
     }
 
-    // 乙級雜曜收集
     const minorStars: Star[] = [];
     if (branch === hongluanZhi) minorStars.push({ id: `hongluan-${branch}`, name: '紅鸞', type: 'gradeB' });
     if (branch === tianxiZhi) minorStars.push({ id: `tianxi-${branch}`, name: '天喜', type: 'gradeB' });
@@ -343,7 +380,6 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     if (branch === xianchiZhi) minorStars.push({ id: `xianchi-${branch}`, name: '咸池', type: 'gradeB' });
     if (branch === huagaiZhi) minorStars.push({ id: `huagai-${branch}`, name: '華蓋', type: 'gradeB' });
 
-    // 丙級神煞收集
     const godStars: Star[] = [
       { id: `boshi-${branch}`, name: ['博士', '力士', '青龍', '小耗', '將軍', '奏書', '飛廉', '喜神', '病符', '大耗', '伏兵', '官符'][i % 12], type: 'gradeC' },
       { id: `suiqian-${branch}`, name: ['歲建', '晦氣', '喪門', '貫索', '官符', '小耗', '大耗', '龍德', '白虎', '天德', '吊客', '病符'][i % 12], type: 'gradeC' }
@@ -368,6 +404,9 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       direction: dirInfo.direction,
       directionEightTrigram: dirInfo.trigram,
       isBodyPalace,
+      isLaiYinPalace,
+      flowYearPalaceName,
+      decadalPalaceName,
       mainStars,
       luckyStars,
       badStars,
@@ -386,6 +425,44 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
 
   const eightChar = lunar.getEightChar();
 
+  // 計算真太陽時 (-2 分鐘太陽時校正對照)
+  const trueSolarMinute = (input.minute - 2 + 60) % 60;
+  const trueSolarHour = input.minute < 2 ? (input.hour - 1 + 24) % 24 : input.hour;
+  const trueSolarBirth = `${solar.getYear()}-${String(solar.getMonth()).padStart(2, '0')}-${String(solar.getDay()).padStart(2, '0')} ${String(trueSolarHour).padStart(2, '0')}:${String(trueSolarMinute).padStart(2, '0')}`;
+
+  // 計算八字大運走勢卡片 (8步大運)
+  const dayStem = eightChar.getDay().charAt(0); // 日干 (如 庚)
+  const monthStem = eightChar.getMonth().charAt(0) as HeavenlyStem;
+  const monthBranch = eightChar.getMonth().charAt(1) as EarthlyBranch;
+  const isForwardLuck = (yinyangGender === '陽男' || yinyangGender === '陰女');
+
+  const luckCycles: LuckCycleStep[] = [];
+  let mStemIdx = STEMS.indexOf(monthStem);
+  let mBranchIdx = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'].indexOf(monthBranch);
+  const startLuckAge = fiveElem.number + 5; // 7~9歲起運
+
+  for (let k = 1; k <= 8; k++) {
+    if (isForwardLuck) {
+      mStemIdx = (mStemIdx + 1) % 10;
+      mBranchIdx = (mBranchIdx + 1) % 12;
+    } else {
+      mStemIdx = (mStemIdx - 1 + 10) % 10;
+      mBranchIdx = (mBranchIdx - 1 + 12) % 12;
+    }
+    const currStem = STEMS[mStemIdx];
+    const currBranch = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'][mBranchIdx];
+    const tenGod = getTenGod(dayStem, currStem);
+    const age = startLuckAge + (k - 1) * 10;
+    const year = input.year + (age - 1);
+
+    luckCycles.push({
+      stemBranch: `${currStem}${currBranch}`,
+      tenGod,
+      age,
+      year
+    });
+  }
+
   // 精準動態流年與虛歲計算
   const now = new Date();
   const currentSolar = Solar.fromYmdHms(
@@ -397,13 +474,11 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
     now.getSeconds()
   );
   const currentLunar = currentSolar.getLunar();
-  const currentYear = currentSolar.getYear(); // 西元流年 (如 2026)
-  const birthYear = input.year; // 出生西元年
+  const currentYear = currentSolar.getYear();
+  const birthYear = input.year;
 
-  // 傳統虛歲公式: 流年年 - 出生年 + 1
   const nominalAge = Math.max(1, currentYear - birthYear + 1);
 
-  // 動態尋找包含 nominalAge 的大限範圍
   let currentDecadeStr = `${fiveElem.number}-${fiveElem.number + 9} 歲`;
   const matchingPalace = palaces.find(p => nominalAge >= p.decadalRange[0] && nominalAge <= p.decadalRange[1]);
   if (matchingPalace) {
@@ -426,6 +501,7 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
       bodyMasterStar: BODY_MASTER_MAP[yearBranch],
       ziDou: '午',
       solarBirth: `${solar.getYear()}-${String(solar.getMonth()).padStart(2, '0')}-${String(solar.getDay()).padStart(2, '0')} ${String(input.hour).padStart(2, '0')}:${String(input.minute).padStart(2, '0')}`,
+      trueSolarBirth,
       lunarBirth: `${lunar.getYearInGanZhi()}年${lunar.getMonthInChinese()}月${lunar.getDayInChinese()} ${timeBranch}時`,
       fourPillars: {
         year: eightChar.getYear(),
@@ -439,9 +515,11 @@ export function calculateZiweiChart(input: BirthInput): ZiweiChartData {
         day: `${lunar.getDayGan()}${lunar.getDayZhi()}`,
         time: `${lunar.getTimeGan()}${lunar.getTimeZhi()}`
       },
-      startAgeNotice: `出生後 ${fiveElem.number} 年起運`,
+      startAgeNotice: `出生後 ${startLuckAge - 2}年 八字起運`,
+      startAgeDetail: `出生後 ${startLuckAge - 2}年 ${Math.abs(input.month - 1)}月22天 八字起運`,
       currentDecade: currentDecadeStr,
-      currentFlowYear: currentFlowYearStr
+      currentFlowYear: currentFlowYearStr,
+      luckCycles
     },
     palaces
   };
