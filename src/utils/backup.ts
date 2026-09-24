@@ -1,5 +1,5 @@
 import type { ZiweiChartData } from '../types/ziwei';
-import { toRecord, type SavedRecord } from './records';
+import { toRecord, NOTE_MAX, type SavedRecord } from './records';
 import { calculateZiweiChart } from './ziweiEngine';
 
 // 紀錄檔格式：包一層說明，之後格式改版時才認得出來
@@ -79,6 +79,7 @@ const isValidRecord = (r: unknown): r is SavedRecord => {
   return !!x && typeof x.id === 'string' && !!b
     && [b.year, b.month, b.day, b.hour, b.minute].every((n) => Number.isInteger(n))
     && (b.gender === 'male' || b.gender === 'female')
+    && (x.note === undefined || typeof x.note === 'string')
     && (b.longitude === undefined || (typeof b.longitude === 'number' && Number.isFinite(b.longitude)));
 };
 
@@ -104,7 +105,7 @@ export async function parseBackupFile(file: File): Promise<{ records: SavedRecor
     // 顯示用的欄位一律依生辰重算，不沿用檔案裡寫的
     try {
       const chart = calculateZiweiChart(rec.birthInput);
-      records.push({ ...rec, name: rec.name || chart.userInfo.name, solarBirth: chart.userInfo.solarBirth, fiveElementElement: chart.userInfo.fiveElementElement });
+      records.push({ ...rec, note: rec.note?.slice(0, NOTE_MAX) || undefined, name: rec.name || chart.userInfo.name, solarBirth: chart.userInfo.solarBirth, fiveElementElement: chart.userInfo.fiveElementElement });
     } catch {
       skipped++; // 生辰本身不存在 (例如農曆小月的三十日)
     }

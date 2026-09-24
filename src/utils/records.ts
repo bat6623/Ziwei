@@ -8,7 +8,11 @@ export interface SavedRecord {
   birthInput: BirthInput;
   solarBirth: string;
   fiveElementElement: string;
+  /** 使用者寫的備註，例如「2024 換工作」 */
+  note?: string;
 }
+
+export const NOTE_MAX = 500;
 
 const CACHE_KEY = 'ziwei_saved_charts';
 // 舊版 GitHub 同步留下的設定 (含金鑰)，功能已移除，看到就刪掉

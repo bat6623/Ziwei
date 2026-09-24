@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import type { ZiweiChartData } from '../types/ziwei';
-import { Image as ImageIcon, Trash2, X, Download, History, Upload, FolderDown, RefreshCw } from 'lucide-react';
+import { Image as ImageIcon, Pencil, Trash2, X, Download, History, Upload, FolderDown, RefreshCw } from 'lucide-react';
 import html2canvas from 'html2canvas-pro';
-import { loadRecords, saveRecords, toRecord, type SavedRecord } from '../utils/records';
+import { loadRecords, saveRecords, toRecord, NOTE_MAX, type SavedRecord } from '../utils/records';
 import { exportRecords, mergeRecords, parseBackupFile } from '../utils/backup';
 
 interface DataStorageManagerProps {
@@ -35,6 +35,9 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
   const [isExportingImage, setIsExportingImage] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 正在編輯備註的紀錄
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
 
   const applyRecords = (list: SavedRecord[]) => {
     setRecords(list);
@@ -42,9 +45,22 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
   };
 
   const handleSave = () => {
-    const record = toRecord(currentChart);
+    // 重存同一張盤時保留原本的備註
+    const record = { ...toRecord(currentChart), note: records.find((r) => r.id === currentChart.id)?.note };
     applyRecords([record, ...records.filter((r) => r.id !== record.id)]);
     setStatus({ kind: 'ok', text: `已儲存「${record.name}」` });
+  };
+
+  const startEditNote = (record: SavedRecord) => {
+    setEditingId(record.id);
+    setNoteDraft(record.note ?? '');
+  };
+
+  const saveNote = (record: SavedRecord) => {
+    const note = noteDraft.trim().slice(0, NOTE_MAX) || undefined;
+    applyRecords(records.map((r) => (r.id === record.id ? { ...r, note } : r)));
+    setEditingId(null);
+    setStatus({ kind: 'ok', text: note ? `已更新「${record.name}」的備註` : `已清除「${record.name}」的備註` });
   };
 
   const handleDelete = (record: SavedRecord) => {
@@ -163,7 +179,8 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
         {records.length > 0 ? (
           <ul className="mt-3">
             {records.map((r) => (
-              <li key={r.id} className="flex items-center gap-3 py-2">
+              <li key={r.id} className="py-2">
+                <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   type="button"
                   onClick={() => onLoadRecord(r)}
@@ -173,9 +190,24 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
                   <span className="min-w-0">
                     <span className="block text-[17px] text-label truncate">{r.name}</span>
                     <span className="block text-[13px] text-label3 truncate">{r.solarBirth} · {r.fiveElementElement}</span>
+                    {r.note && editingId !== r.id && (
+                      <span className="block text-[13px] text-label2 line-clamp-2 whitespace-pre-line">{r.note}</span>
+                    )}
                   </span>
                   <span className="hidden sm:block flex-1 h-px bg-separator mx-2" />
                   <span className="ml-auto shrink-0 text-[13px] text-label3">{timeAgo(r.createdAt)}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => (editingId === r.id ? setEditingId(null) : startEditNote(r))}
+                  aria-label={`${r.note ? '編輯' : '新增'} ${r.name} 的備註`}
+                  aria-expanded={editingId === r.id}
+                  title={r.note ? '編輯備註' : '新增備註'}
+                  className={`shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors cursor-pointer active:bg-fill ${
+                    editingId === r.id ? 'border-label2 text-label' : 'border-separator text-label3 hover:text-label'
+                  }`}
+                >
+                  <Pencil className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
@@ -185,6 +217,36 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
+                </div>
+
+                {editingId === r.id && (
+                  <div className="mt-2 ml-14 rounded-[20px] bg-grouped p-3">
+                    <textarea
+                      value={noteDraft}
+                      onChange={(e) => setNoteDraft(e.target.value)}
+                      maxLength={NOTE_MAX}
+                      rows={3}
+                      autoFocus
+                      aria-label={`${r.name} 的備註`}
+                      placeholder="例如：2024 換工作、2019 結婚"
+                      className="w-full resize-y rounded-[14px] bg-card px-3 py-2 text-[15px] text-label placeholder:text-label3 outline-none focus:ring-2 focus:ring-accent"
+                    />
+                    <div className="mt-2 flex items-center gap-2">
+                      <span className="flex-1 text-[12px] text-label3">{noteDraft.length} / {NOTE_MAX}</span>
+                      <button type="button" onClick={() => setEditingId(null)} className="h-9 px-4 rounded-full border border-separator text-[14px] text-label hover:bg-fill active:bg-fill2 cursor-pointer">
+                        取消
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveNote(r)}
+                        disabled={noteDraft.trim() === (r.note ?? '')}
+                        className="h-9 px-4 rounded-full bg-accent text-on-accent text-[14px] font-medium hover:brightness-95 active:brightness-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        儲存備註
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

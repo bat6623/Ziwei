@@ -23,8 +23,11 @@ export const RecentCharts: React.FC<RecentChartsProps> = ({ currentId, onLoadRec
   }, []);
 
   if (records.length === 0) return null;
+  // 目前這張盤的備註 (看全部紀錄，不只最近 5 筆)
+  const note = loadRecords().find((r) => r.id === currentId)?.note;
 
   return (
+    <>
     <nav aria-label="最近命盤" className="mt-5 flex items-center gap-2">
       <span className="shrink-0 text-[13px] text-label3">最近命盤</span>
       <div className="flex-1 min-w-0 flex gap-1.5 overflow-x-auto no-scrollbar">
@@ -59,5 +62,11 @@ export const RecentCharts: React.FC<RecentChartsProps> = ({ currentId, onLoadRec
         })}
       </div>
     </nav>
+    {note && (
+      <p className="mt-3 rounded-[20px] bg-card px-4 py-2.5 text-[14px] text-label2 whitespace-pre-line">
+        <span className="text-label3">備註　</span>{note}
+      </p>
+    )}
+    </>
   );
 };

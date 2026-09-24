@@ -763,6 +763,15 @@ export function getThisYearFlow(chart: ZiweiChartData, today = new Date()): { de
   return d ? { decadeKey: d.key, year, age } : null;
 }
 
+/** 今天對應的流年、流月、流日、流時 (農曆；閏月算當月) */
+export function getTodayFlow(chart: ZiweiChartData, now = new Date()): FlowSelection | null {
+  const y = getThisYearFlow(chart, now);
+  if (!y) return null;
+  const lunar = Solar.fromDate(now).getLunar();
+  const hour = Math.floor(((now.getHours() + 1) % 24) / 2); // 23 點起算子時
+  return { decadeKey: y.decadeKey, year: y.year, month: Math.abs(lunar.getMonth()), day: lunar.getDay(), hour };
+}
+
 // 某個大限 (或童限) 內的十個流年
 export function getFlowYears(chart: ZiweiChartData, decadeKey: string) {
   const birth = getLunarBirthYear(chart);

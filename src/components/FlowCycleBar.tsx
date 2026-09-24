@@ -5,6 +5,7 @@ import {
   getDefaultDecadeKey,
   getFlowYears,
   getThisYearFlow,
+  getTodayFlow,
   getLunarMonthDayCount,
   LUNAR_DAY_NAMES,
   LUNAR_MONTH_LABELS,
@@ -70,6 +71,9 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
   const pickThisYear = () => {
     if (thisYear) onChange({ decadeKey: thisYear.decadeKey, year: thisYear.year, month: null, day: null, hour: null });
   };
+  // 今天：流年到流時一次選好 (只有三合盤有流月以下的選單)
+  const today = showDetail ? getTodayFlow(data) : null;
+  const isToday = !!today && (['decadeKey', 'year', 'month', 'day', 'hour'] as const).every((k) => selection[k] === today[k]);
   const clearAll = () => onChange({ decadeKey: null, year: null, month: null, day: null, hour: null });
 
   const pill = 'h-9 px-4 rounded-full text-[13px] sm:text-[14px] transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
@@ -100,6 +104,18 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
         >
           今年{thisYear ? ` ${thisYear.year}` : ''}
         </button>
+        {showDetail && (
+          <button
+            type="button"
+            onClick={() => today && onChange(today)}
+            disabled={!today}
+            aria-pressed={isToday}
+            title={today ? `選到今天：${LUNAR_MONTH_LABELS[today.month! - 1]}${LUNAR_DAY_NAMES[today.day! - 1]} ${HOUR_LABELS[today.hour!]}` : '今天不在這張命盤的大限範圍內'}
+            className={`${pill} border border-separator text-label enabled:hover:bg-fill enabled:active:bg-fill2`}
+          >
+            今天
+          </button>
+        )}
       </div>
 
       {/* 大限 */}
