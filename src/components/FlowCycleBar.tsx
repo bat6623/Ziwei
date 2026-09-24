@@ -21,10 +21,10 @@ const HOUR_LABELS = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時',
 const cellClass = (selected: boolean, disabled = false) =>
   `py-1.5 px-0.5 text-center leading-tight transition-colors ${
     disabled
-      ? 'text-[#c7c7cc] cursor-not-allowed'
+      ? 'bg-white text-[#c7c7cc] cursor-not-allowed'
       : selected
         ? 'bg-[#007aff] text-white font-semibold cursor-pointer'
-        : 'text-black active:bg-[#e5e5ea] hover:bg-[#f2f2f7] cursor-pointer'
+        : 'bg-white text-black active:bg-[#e5e5ea] hover:bg-[#f2f2f7] cursor-pointer'
   }`;
 
 const RowLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -134,7 +134,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
                     disabled={disabled}
                     title={selection.month === null ? '請先選流月' : day > dayCount ? '這個月沒有這一天' : undefined}
                     onClick={() => pickDay(day)}
-                    className={`bg-white ${cellClass(selection.day === day, disabled)}`}
+                    className={cellClass(selection.day === day, disabled)}
                   >
                     {label}
                   </button>
