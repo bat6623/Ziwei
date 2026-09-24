@@ -21,14 +21,14 @@ const HOUR_LABELS = ['子時', '丑時', '寅時', '卯時', '辰時', '巳時',
 const cellClass = (selected: boolean, disabled = false) =>
   `py-1.5 px-0.5 text-center leading-tight transition-colors ${
     disabled
-      ? 'bg-white text-[#c7c7cc] cursor-not-allowed'
+      ? 'bg-card text-label4 cursor-not-allowed'
       : selected
-        ? 'bg-[#007aff] text-white font-semibold cursor-pointer'
-        : 'bg-white text-black active:bg-[#e5e5ea] hover:bg-[#f2f2f7] cursor-pointer'
+        ? 'bg-tint text-white font-semibold cursor-pointer'
+        : 'bg-card text-label active:bg-fill hover:bg-grouped cursor-pointer'
   }`;
 
 const RowLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div className="w-11 sm:w-14 shrink-0 bg-[#f9f9fb] border-r border-[#c6c6c8]/60 flex items-center justify-center text-center font-semibold text-[#3c3c43] text-[12px] sm:text-sm leading-tight">
+  <div className="w-11 sm:w-14 shrink-0 bg-card2 border-r border-separator/60 flex items-center justify-center text-center font-semibold text-label2 text-[12px] sm:text-sm leading-tight">
     {children}
   </div>
 );
@@ -63,10 +63,10 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
   const pickHour = (hour: number) =>
     onChange({ ...selection, hour: selection.hour === hour ? null : hour });
 
-  const scrollRow = 'flex-1 flex overflow-x-auto divide-x divide-[#c6c6c8]/40 no-scrollbar';
+  const scrollRow = 'flex-1 flex overflow-x-auto divide-x divide-separator/40 no-scrollbar';
 
   return (
-    <div className="w-full rounded-2xl overflow-hidden bg-white text-[11px] sm:text-[13px] my-4 font-apple select-none divide-y divide-[#c6c6c8]/60">
+    <div className="w-full rounded-2xl overflow-hidden bg-card text-[11px] sm:text-[13px] my-4 font-apple select-none divide-y divide-separator/60">
       {/* 大限 */}
       <div className="flex">
         <RowLabel>大限</RowLabel>
@@ -123,7 +123,7 @@ export const FlowCycleBar: React.FC<FlowCycleBarProps> = ({ data, mode, selectio
           {/* 流日：一次列出三十天，不用左右滑 */}
           <div className="flex">
             <RowLabel>流日</RowLabel>
-            <div className="flex-1 grid grid-cols-10 gap-px bg-[#c6c6c8]/40">
+            <div className="flex-1 grid grid-cols-10 gap-px bg-separator/40">
               {LUNAR_DAY_NAMES.map((label, i) => {
                 const day = i + 1;
                 const disabled = selection.month === null || day > dayCount;

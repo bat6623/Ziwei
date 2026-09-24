@@ -1,5 +1,62 @@
 @import "tailwindcss";
 
+/* 深色模式：<html class="dark"> 時套用 dark: 樣式 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* 介面顏色 (iOS 系統色)，淺色／深色各一組，元件一律用這些名稱 */
+@theme {
+  --color-grouped: var(--c-grouped);
+  --color-card: var(--c-card);
+  --color-card2: var(--c-card2);
+  --color-label: var(--c-label);
+  --color-label2: var(--c-label2);
+  --color-label3: var(--c-label3);
+  --color-label4: var(--c-label4);
+  --color-separator: var(--c-separator);
+  --color-fill: var(--c-fill);
+  --color-fill2: var(--c-fill2);
+  --color-tint: var(--c-tint);
+  --color-tint-pressed: var(--c-tint-pressed);
+  --color-ok: var(--c-ok);
+  --color-danger: var(--c-danger);
+}
+
+:root {
+  --c-grouped: #f2f2f7;
+  --c-card: #ffffff;
+  --c-card2: #f9f9fb;
+  --c-label: #000000;
+  --c-label2: #3c3c43;
+  --c-label3: #8e8e93;
+  --c-label4: #c7c7cc;
+  --c-separator: #c6c6c8;
+  --c-fill: #e5e5ea;
+  --c-fill2: #d1d1d6;
+  --c-tint: #007aff;
+  --c-tint-pressed: #0062cc;
+  --c-ok: #34c759;
+  --c-danger: #ff3b30;
+  color-scheme: light;
+}
+
+.dark {
+  --c-grouped: #000000;
+  --c-card: #1c1c1e;
+  --c-card2: #242426;
+  --c-label: #ffffff;
+  --c-label2: #d6d6de;
+  --c-label3: #8d8d93;
+  --c-label4: #545458;
+  --c-separator: #38383a;
+  --c-fill: #2c2c2e;
+  --c-fill2: #3a3a3c;
+  --c-tint: #0a84ff;
+  --c-tint-pressed: #409cff;
+  --c-ok: #30d158;
+  --c-danger: #ff453a;
+  color-scheme: dark;
+}
+
 @layer utilities {
   @keyframes spinSlow {
     from {
@@ -35,8 +92,8 @@
 
 body {
   margin: 0;
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--c-grouped);
+  color: var(--c-label);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }

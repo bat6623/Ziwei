@@ -2,13 +2,15 @@ import { useMemo, useState } from 'react';
 import { calculateZiweiChart, applyFlowSelection } from './utils/ziweiEngine';
 import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
 import { getBirthInput, type SavedRecord } from './utils/githubSync';
+import { APP_VERSION, BUILD_TIME } from './utils/appVersion';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
 import { DataStorageManager } from './components/DataStorageManager';
 import { FlowCycleBar } from './components/FlowCycleBar';
 import { BottomControlBar } from './components/BottomControlBar';
 import { InfoModals } from './components/InfoModals';
-import { Sparkles, Calendar, RotateCcw, RefreshCw } from 'lucide-react';
+import { Sparkles, Calendar, RotateCcw, RefreshCw, Sun, Moon } from 'lucide-react';
+import { useTheme } from './utils/theme';
 
 const getInitialInput = (): BirthInput => {
   const now = new Date();
@@ -43,6 +45,8 @@ export function App() {
   const [flowSel, setFlowSel] = useState<FlowSelection>(NO_FLOW);
   const chartData = useMemo(() => applyFlowSelection(baseChart, flowSel), [baseChart, flowSel]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const theme = useTheme();
+  const darkNow = theme.pref === 'dark' || (theme.pref === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
   // 頁面切換 Tab (飛星 | 三合 | 四化)
   const [tabMode, setTabMode] = useState<ChartTabMode>('sanhe');
@@ -116,9 +120,9 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f2f2f7] text-slate-900 font-sans flex flex-col items-center pb-36 selection:bg-amber-500 selection:text-white">
+    <div className="min-h-screen bg-grouped text-label font-sans flex flex-col items-center pb-36 selection:bg-amber-500 selection:text-white">
       {/* 頂部 Header */}
-      <header className="w-full bg-white/90 border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md shadow-xs">
+      <header className="w-full bg-card/90 border-b border-separator sticky top-0 z-40 backdrop-blur-md shadow-xs">
         <div className="max-w-6xl mx-auto px-4 py-2.5 sm:py-3 flex items-center justify-between gap-3">
           {/* Logo */}
           <div className="flex items-center gap-2">
@@ -126,10 +130,10 @@ export function App() {
               紫
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-black tracking-wider text-slate-900 font-serif flex items-center gap-1.5">
-                紫微斗數神算命盤 <span className="hidden sm:inline text-[10px] bg-amber-100 text-amber-900 border border-amber-300 px-1.5 py-0.2 rounded font-sans font-bold">飛星 • 三合 • 四化</span>
+              <h1 className="text-base sm:text-lg font-black tracking-wider text-label font-serif flex items-center gap-1.5">
+                紫微斗數神算命盤 <span className="hidden sm:inline text-[10px] bg-amber-100 text-amber-900 dark:text-amber-200 border border-amber-300 px-1.5 py-0.2 rounded font-sans font-bold">飛星 • 三合 • 四化</span>
               </h1>
-              <p className="hidden sm:block text-[10px] text-slate-500">專業級安星演算法 • 大限/流年/流月/流日選單 • 底部導覽</p>
+              <p className="hidden sm:block text-[10px] text-label3">專業級安星演算法 • 大限/流年/流月/流日選單 • 底部導覽</p>
             </div>
           </div>
 
@@ -137,18 +141,28 @@ export function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={handleClearCache}
-              className="hidden sm:flex bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-bold px-3 py-2 rounded-xl items-center gap-1.5 transition shadow-2xs cursor-pointer"
+              className="hidden sm:flex bg-rose-50 dark:bg-rose-500/15 hover:bg-rose-100 text-rose-700 dark:text-rose-400 border border-rose-300 dark:border-rose-500/40 text-xs font-bold px-3 py-2 rounded-xl items-center gap-1.5 transition shadow-2xs cursor-pointer"
               title="把命盤重設為此刻時間（不會刪除已儲存的紀錄）"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-rose-600" /> 重置為此刻
+              <RefreshCw className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" /> 重置為此刻
             </button>
 
             <button
               onClick={handleLoadDemo}
-              className="hidden sm:flex bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 text-xs font-bold px-3 py-2 rounded-xl items-center gap-1.5 transition shadow-2xs cursor-pointer"
+              className="hidden sm:flex bg-fill hover:bg-fill2 text-label2 border border-separator text-xs font-bold px-3 py-2 rounded-xl items-center gap-1.5 transition shadow-2xs cursor-pointer"
               title="載入測試範例 (1956/02/11 巳時)"
             >
               <RotateCcw className="w-3.5 h-3.5" /> 帶入測試範例
+            </button>
+
+            <button
+              type="button"
+              onClick={() => theme.setPref(darkNow ? 'light' : 'dark')}
+              aria-label={darkNow ? '切換成淺色模式' : '切換成深色模式'}
+              title={darkNow ? '切換成淺色模式' : '切換成深色模式'}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-tint active:bg-fill hover:bg-fill transition-colors cursor-pointer"
+            >
+              {darkNow ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
             <button
@@ -164,12 +178,12 @@ export function App() {
       {/* 主內容區 */}
       <main className="w-full max-w-6xl px-2 sm:px-4 mt-4 flex flex-col items-center">
         {/* 動態提示 Banner */}
-        <div className="w-full max-w-5xl bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 sm:p-3 mb-3 sm:mb-4 flex items-center justify-between text-xs text-amber-900 shadow-2xs">
+        <div className="w-full max-w-5xl bg-amber-50 dark:bg-amber-400/10 border border-amber-200 dark:border-amber-500/30 rounded-xl px-3 py-2 sm:p-3 mb-3 sm:mb-4 flex items-center justify-between text-xs text-amber-900 dark:text-amber-200 shadow-2xs">
           <div className="flex items-center gap-2">
             <Sparkles className="shrink-0 w-4 h-4 text-amber-600" />
             <span className="text-[11px] sm:text-xs leading-snug">{getBannerNotice()}</span>
           </div>
-          <span className="hidden sm:inline-block text-[10px] text-slate-500">
+          <span className="hidden sm:inline-block text-[10px] text-label3">
             底部可切換模式、下方可調整大限流年
           </span>
         </div>
@@ -187,6 +201,10 @@ export function App() {
           currentChart={baseChart}
           onLoadRecord={handleLoadRecord}
         />
+
+        <p className="mb-2 text-[12px] text-label3 font-apple">
+          版本 {APP_VERSION} · {BUILD_TIME} 建置
+        </p>
       </main>
 
       {/* 底部固定 Sticky 控制與導覽列 (文墨天機風格) */}
@@ -203,6 +221,8 @@ export function App() {
         onLoadDemo={handleLoadDemo}
         activeDockTab={activeDockTab}
         onDockTabChange={handleDockTabChange}
+        themePref={theme.pref}
+        onThemeChange={theme.setPref}
       />
 
       <InputModal

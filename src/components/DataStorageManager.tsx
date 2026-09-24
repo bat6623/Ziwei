@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ZiweiChartData } from '../types/ziwei';
-import { Image as ImageIcon, Trash2, X, Download, ChevronRight, RefreshCw, Cloud, Check } from 'lucide-react';
+import { Image as ImageIcon, Trash2, X, Download, ChevronRight, RefreshCw, Cloud, Check, Upload, FolderDown } from 'lucide-react';
+import { exportRecords, mergeRecords, parseBackupFile } from '../utils/backup';
 import html2canvas from 'html2canvas-pro';
 import {
   DEFAULT_CONFIG,
@@ -35,6 +36,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
   const [tokenInput, setTokenInput] = useState('');
   const [repoInput, setRepoInput] = useState(`${DEFAULT_CONFIG.owner}/${DEFAULT_CONFIG.repo}`);
   const [showSetup, setShowSetup] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const applyRecords = (list: SavedRecord[]) => {
     setRecords(list);
@@ -106,6 +108,52 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
     }
   };
 
+  // 匯出紀錄檔 (存到 iCloud 雲碟等位置)
+  const handleExportFile = async () => {
+    try {
+      const result = await exportRecords(records);
+      if (result === 'cancelled') return;
+      setStatus({
+        kind: 'ok',
+        text: result === 'downloaded'
+          ? `已下載 ${records.length} 筆紀錄，可以把檔案移到 iCloud 雲碟保存`
+          : `已匯出 ${records.length} 筆紀錄`,
+      });
+    } catch (e) {
+      setStatus({ kind: 'error', text: `匯出失敗：${(e as Error).message}` });
+    }
+  };
+
+  // 從紀錄檔匯入，與現有清單合併
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // 同一個檔案可以再選一次
+    if (!file) return;
+    try {
+      const { records: incoming, skipped } = await parseBackupFile(file);
+      if (incoming.length === 0) {
+        setStatus({ kind: 'error', text: '檔案裡沒有可以匯入的命盤' });
+        return;
+      }
+      let result = mergeRecords(records, incoming);
+      if (config) {
+        setStatus({ kind: 'busy', text: '正在匯入並同步到 GitHub…' });
+        const next = await updateRecords(config, (list) => {
+          result = mergeRecords(list, incoming);
+          return result.merged;
+        }, `匯入 ${incoming.length} 筆命盤`);
+        applyRecords(next);
+      } else {
+        applyRecords(result.merged);
+      }
+      const parts = [`新增 ${result.added} 筆`, result.updated ? `更新 ${result.updated} 筆` : '', skipped ? `略過 ${skipped} 筆格式不對的資料` : '']
+        .filter(Boolean).join('、');
+      setStatus({ kind: 'ok', text: `匯入完成：${parts}` });
+    } catch (err) {
+      setStatus({ kind: 'error', text: `匯入失敗：${(err as Error).message}` });
+    }
+  };
+
   const handleConnect = async () => {
     const [owner, repo] = repoInput.trim().split('/');
     const token = tokenInput.trim();
@@ -149,7 +197,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
         setStatus({ kind: 'error', text: '找不到命盤區塊，請重新整理後再試' });
         return;
       }
-      const canvas = await html2canvas(gridEl, { backgroundColor: '#ffffff', scale: 2, useCORS: true, logging: false });
+      const canvas = await html2canvas(gridEl, { backgroundColor: getComputedStyle(document.body).getPropertyValue('--c-card').trim() || '#ffffff', scale: 2, useCORS: true, logging: false });
       setPreviewImage(canvas.toDataURL('image/png'));
 
       // 手機支援系統分享選單時直接叫出來
@@ -183,26 +231,26 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
   };
 
   const busy = status.kind === 'busy';
-  const statusColor = status.kind === 'error' ? 'text-[#ff3b30]' : status.kind === 'ok' ? 'text-[#34c759]' : 'text-[#8e8e93]';
+  const statusColor = status.kind === 'error' ? 'text-danger' : status.kind === 'ok' ? 'text-ok' : 'text-label3';
 
   return (
     <div className="w-full max-w-5xl my-6 space-y-6 font-apple">
       {/* 命盤紀錄 */}
       <section>
         <div className="flex items-end justify-between px-4 mb-1.5">
-          <h3 className="text-[13px] uppercase tracking-wide text-[#6d6d72]">命盤紀錄</h3>
-          <span className="text-[13px] text-[#8e8e93]">
+          <h3 className="text-[13px] uppercase tracking-wide text-label3">命盤紀錄</h3>
+          <span className="text-[13px] text-label3">
             {config ? `GitHub · ${config.owner}/${config.repo}` : '只存在這台裝置'}
           </span>
         </div>
 
-        <div className="bg-white rounded-2xl overflow-hidden">
+        <div className="bg-card rounded-2xl overflow-hidden">
           <div className="flex gap-2 p-3">
             <button
               type="button"
               onClick={handleSave}
               disabled={busy}
-              className="flex-1 h-11 rounded-xl bg-[#007aff] text-white text-[15px] font-semibold active:bg-[#0062cc] disabled:opacity-40 transition-colors cursor-pointer"
+              className="flex-1 h-11 rounded-xl bg-tint text-white text-[15px] font-semibold active:bg-tint-pressed disabled:opacity-40 transition-colors cursor-pointer"
             >
               儲存目前命盤
             </button>
@@ -211,7 +259,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
               type="button"
               onClick={handleExportImage}
               disabled={isExportingImage}
-              className="flex-1 h-11 rounded-xl bg-[#007aff]/10 text-[#007aff] text-[15px] font-semibold active:bg-[#007aff]/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              className="flex-1 h-11 rounded-xl bg-tint/10 text-tint text-[15px] font-semibold active:bg-tint/20 disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
             >
               <ImageIcon className="w-4 h-4" />
               {isExportingImage ? '產生中…' : '匯出圖片'}
@@ -226,26 +274,26 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
           )}
 
           {records.length > 0 ? (
-            <ul className="border-t border-[#c6c6c8]/60">
+            <ul className="border-t border-separator/60">
               {records.map((r) => (
                 <li key={r.id} className="flex items-center pl-4 group">
                   <button
                     type="button"
                     onClick={() => onLoadRecord(r)}
-                    className="flex-1 min-w-0 flex items-center justify-between py-2.5 pr-2 border-b border-[#c6c6c8]/60 group-last:border-b-0 text-left active:bg-[#e5e5ea] cursor-pointer"
+                    className="flex-1 min-w-0 flex items-center justify-between py-2.5 pr-2 border-b border-separator/60 group-last:border-b-0 text-left active:bg-fill cursor-pointer"
                   >
                     <span className="min-w-0">
-                      <span className="block text-[17px] text-black truncate">{r.name}</span>
-                      <span className="block text-[13px] text-[#8e8e93]">{r.solarBirth} · {r.fiveElementElement}</span>
+                      <span className="block text-[17px] text-label truncate">{r.name}</span>
+                      <span className="block text-[13px] text-label3">{r.solarBirth} · {r.fiveElementElement}</span>
                     </span>
-                    <ChevronRight className="w-4 h-4 text-[#c7c7cc] shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-label4 shrink-0" />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(r)}
                     disabled={busy}
                     aria-label={`刪除 ${r.name}`}
-                    className="self-stretch px-4 border-b border-[#c6c6c8]/60 group-last:border-b-0 text-[#ff3b30] active:bg-[#ffe5e3] disabled:opacity-40 cursor-pointer"
+                    className="self-stretch px-4 border-b border-separator/60 group-last:border-b-0 text-danger active:bg-danger/10 disabled:opacity-40 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -253,7 +301,7 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
               ))}
             </ul>
           ) : (
-            <p className="border-t border-[#c6c6c8]/60 px-4 py-6 text-center text-[15px] text-[#8e8e93]">還沒有儲存的命盤</p>
+            <p className="border-t border-separator/60 px-4 py-6 text-center text-[15px] text-label3">還沒有儲存的命盤</p>
           )}
         </div>
 
@@ -262,40 +310,80 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
             type="button"
             onClick={handleClearAll}
             disabled={busy}
-            className="mt-2 w-full h-11 rounded-2xl bg-white text-[#ff3b30] text-[15px] active:bg-[#e5e5ea] disabled:opacity-40 cursor-pointer"
+            className="mt-2 w-full h-11 rounded-2xl bg-card text-danger text-[15px] active:bg-fill disabled:opacity-40 cursor-pointer"
           >
             刪除全部紀錄
           </button>
         )}
       </section>
 
+      {/* 備份到 iCloud：手動匯出／匯入紀錄檔 */}
+      <section>
+        <h3 className="px-4 mb-1.5 text-[13px] uppercase tracking-wide text-label3">備份到 iCloud</h3>
+        <div className="bg-card rounded-2xl overflow-hidden">
+          <button
+            type="button"
+            onClick={handleExportFile}
+            disabled={records.length === 0 || busy}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left border-b border-separator/60 active:bg-fill disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <span className="w-7 h-7 rounded-lg bg-tint text-white flex items-center justify-center"><FolderDown className="w-4 h-4" /></span>
+            <span className="flex-1">
+              <span className="block text-[17px] text-label">匯出紀錄檔</span>
+              <span className="block text-[13px] text-label3">
+                {records.length === 0 ? '還沒有紀錄可以匯出' : `共 ${records.length} 筆`}
+              </span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-label4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-fill disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+          >
+            <span className="w-7 h-7 rounded-lg bg-ok text-white flex items-center justify-center"><Upload className="w-4 h-4" /></span>
+            <span className="flex-1">
+              <span className="block text-[17px] text-label">從檔案匯入</span>
+              <span className="block text-[13px] text-label3">與目前的紀錄合併，不會刪掉原有的</span>
+            </span>
+            <ChevronRight className="w-4 h-4 text-label4" />
+          </button>
+          <input ref={fileInputRef} type="file" accept=".json,application/json" className="hidden" onChange={handleImportFile} />
+        </div>
+        <p className="px-4 mt-1.5 text-[13px] text-label3 leading-snug">
+          iPhone／iPad：匯出時選「儲存到檔案」→ iCloud 雲碟；匯入時在「檔案」裡挑選。<br />
+          Mac：Chrome 會讓你直接選 iCloud 雲碟資料夾；Safari 會存到「下載項目」，再拖進 iCloud 雲碟即可。
+        </p>
+      </section>
+
       {/* GitHub 同步設定 */}
       <section>
-        <h3 className="px-4 mb-1.5 text-[13px] uppercase tracking-wide text-[#6d6d72]">GitHub 同步</h3>
-        <div className="bg-white rounded-2xl overflow-hidden">
+        <h3 className="px-4 mb-1.5 text-[13px] uppercase tracking-wide text-label3">GitHub 同步</h3>
+        <div className="bg-card rounded-2xl overflow-hidden">
           {config ? (
             <>
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-[#c6c6c8]/60">
-                <span className="w-7 h-7 rounded-lg bg-black text-white flex items-center justify-center"><Cloud className="w-4 h-4" /></span>
+              <div className="flex items-center gap-3 px-4 py-3 border-b border-separator/60">
+                <span className="w-7 h-7 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center"><Cloud className="w-4 h-4" /></span>
                 <span className="flex-1 min-w-0">
-                  <span className="block text-[17px] text-black">已連線</span>
-                  <span className="block text-[13px] text-[#8e8e93] truncate">{config.owner}/{config.repo} · {config.path}</span>
+                  <span className="block text-[17px] text-label">已連線</span>
+                  <span className="block text-[13px] text-label3 truncate">{config.owner}/{config.repo} · {config.path}</span>
                 </span>
-                <Check className="w-5 h-5 text-[#34c759]" />
+                <Check className="w-5 h-5 text-ok" />
               </div>
-              <button type="button" onClick={() => { setStatus({ kind: 'busy', text: '正在從 GitHub 同步…' }); void sync(config); }} disabled={busy} className="w-full text-left px-4 py-3 text-[17px] text-[#007aff] border-b border-[#c6c6c8]/60 active:bg-[#e5e5ea] disabled:opacity-40 cursor-pointer">
+              <button type="button" onClick={() => { setStatus({ kind: 'busy', text: '正在從 GitHub 同步…' }); void sync(config); }} disabled={busy} className="w-full text-left px-4 py-3 text-[17px] text-tint border-b border-separator/60 active:bg-fill disabled:opacity-40 cursor-pointer">
                 立即重新同步
               </button>
-              <button type="button" onClick={handleDisconnect} className="w-full text-left px-4 py-3 text-[17px] text-[#ff3b30] active:bg-[#e5e5ea] cursor-pointer">
+              <button type="button" onClick={handleDisconnect} className="w-full text-left px-4 py-3 text-[17px] text-danger active:bg-fill cursor-pointer">
                 中斷連線並刪除這台裝置的金鑰
               </button>
             </>
           ) : showSetup ? (
             <div className="p-4 space-y-3">
-              <ol className="text-[13px] text-[#3c3c43] space-y-1 list-decimal pl-5">
+              <ol className="text-[13px] text-label2 space-y-1 list-decimal pl-5">
                 <li>
                   到 GitHub{' '}
-                  <a href={TOKEN_URL} target="_blank" rel="noreferrer" className="text-[#007aff] underline">建立金鑰</a>
+                  <a href={TOKEN_URL} target="_blank" rel="noreferrer" className="text-tint underline">建立金鑰</a>
                   （Fine-grained token）
                 </li>
                 <li>「Repository access」選 Only select repositories，只勾 <b>{DEFAULT_CONFIG.repo}</b></li>
@@ -303,48 +391,48 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
                 <li>產生後複製，貼到下面</li>
               </ol>
               <label className="block">
-                <span className="text-[13px] text-[#6d6d72]">倉庫</span>
+                <span className="text-[13px] text-label3">倉庫</span>
                 <input
                   value={repoInput}
                   onChange={(e) => setRepoInput(e.target.value)}
-                  className="mt-1 w-full h-11 px-3 rounded-xl bg-[#f2f2f7] text-[17px] outline-none focus:ring-2 focus:ring-[#007aff]/40"
+                  className="mt-1 w-full h-11 px-3 rounded-xl bg-grouped text-[17px] outline-none focus:ring-2 focus:ring-tint/40"
                   autoCapitalize="off"
                   autoCorrect="off"
                   spellCheck={false}
                 />
               </label>
               <label className="block">
-                <span className="text-[13px] text-[#6d6d72]">金鑰</span>
+                <span className="text-[13px] text-label3">金鑰</span>
                 <input
                   type="password"
                   value={tokenInput}
                   onChange={(e) => setTokenInput(e.target.value)}
                   placeholder="github_pat_…"
-                  className="mt-1 w-full h-11 px-3 rounded-xl bg-[#f2f2f7] text-[17px] outline-none focus:ring-2 focus:ring-[#007aff]/40"
+                  className="mt-1 w-full h-11 px-3 rounded-xl bg-grouped text-[17px] outline-none focus:ring-2 focus:ring-tint/40"
                   autoComplete="off"
                   spellCheck={false}
                 />
               </label>
-              <p className="text-[12px] text-[#8e8e93]">
+              <p className="text-[12px] text-label3">
                 金鑰只存在這台裝置的瀏覽器，不會放進網站程式。請勿在共用電腦上連線。
               </p>
               <div className="flex gap-2">
-                <button type="button" onClick={() => setShowSetup(false)} className="flex-1 h-11 rounded-xl bg-[#f2f2f7] text-[#007aff] text-[15px] font-semibold active:bg-[#e5e5ea] cursor-pointer">
+                <button type="button" onClick={() => setShowSetup(false)} className="flex-1 h-11 rounded-xl bg-grouped text-tint text-[15px] font-semibold active:bg-fill cursor-pointer">
                   取消
                 </button>
-                <button type="button" onClick={handleConnect} disabled={busy} className="flex-1 h-11 rounded-xl bg-[#007aff] text-white text-[15px] font-semibold active:bg-[#0062cc] disabled:opacity-40 cursor-pointer">
+                <button type="button" onClick={handleConnect} disabled={busy} className="flex-1 h-11 rounded-xl bg-tint text-white text-[15px] font-semibold active:bg-tint-pressed disabled:opacity-40 cursor-pointer">
                   連線
                 </button>
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => setShowSetup(true)} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-[#e5e5ea] cursor-pointer">
-              <span className="w-7 h-7 rounded-lg bg-black text-white flex items-center justify-center"><Cloud className="w-4 h-4" /></span>
+            <button type="button" onClick={() => setShowSetup(true)} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-fill cursor-pointer">
+              <span className="w-7 h-7 rounded-lg bg-black text-white dark:bg-white dark:text-black flex items-center justify-center"><Cloud className="w-4 h-4" /></span>
               <span className="flex-1">
-                <span className="block text-[17px] text-black">連線 GitHub</span>
-                <span className="block text-[13px] text-[#8e8e93]">紀錄存到私人倉庫，換裝置、重新整理都拉得到</span>
+                <span className="block text-[17px] text-label">連線 GitHub</span>
+                <span className="block text-[13px] text-label3">紀錄存到私人倉庫，換裝置、重新整理都拉得到</span>
               </span>
-              <ChevronRight className="w-4 h-4 text-[#c7c7cc]" />
+              <ChevronRight className="w-4 h-4 text-label4" />
             </button>
           )}
         </div>
@@ -353,19 +441,19 @@ export const DataStorageManager: React.FC<DataStorageManagerProps> = ({ currentC
       {/* 圖片預覽 */}
       {previewImage && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-[#f2f2f7] w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="bg-grouped w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[92vh]">
             <div className="relative flex items-center justify-center h-14 px-4">
-              <span className="text-[17px] font-semibold text-black">命盤圖片</span>
-              <button type="button" onClick={() => setPreviewImage(null)} aria-label="關閉" className="absolute right-3 w-8 h-8 rounded-full bg-[#e5e5ea] text-[#8e8e93] flex items-center justify-center cursor-pointer">
+              <span className="text-[17px] font-semibold text-label">命盤圖片</span>
+              <button type="button" onClick={() => setPreviewImage(null)} aria-label="關閉" className="absolute right-3 w-8 h-8 rounded-full bg-fill text-label3 flex items-center justify-center cursor-pointer">
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <p className="px-4 pb-2 text-center text-[13px] text-[#8e8e93]">手機上長按圖片即可存到照片</p>
+            <p className="px-4 pb-2 text-center text-[13px] text-label3">手機上長按圖片即可存到照片</p>
             <div className="px-4 overflow-y-auto flex-1 flex justify-center">
               <img src={previewImage} alt={`紫微命盤_${currentChart.userInfo.name}`} className="max-w-full h-auto rounded-xl" />
             </div>
             <div className="p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-              <button type="button" onClick={handleDownloadDirect} className="w-full h-12 rounded-xl bg-[#007aff] text-white text-[17px] font-semibold active:bg-[#0062cc] flex items-center justify-center gap-2 cursor-pointer">
+              <button type="button" onClick={handleDownloadDirect} className="w-full h-12 rounded-xl bg-tint text-white text-[17px] font-semibold active:bg-tint-pressed flex items-center justify-center gap-2 cursor-pointer">
                 <Download className="w-5 h-5" /> 下載 PNG
               </button>
             </div>

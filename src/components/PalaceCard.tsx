@@ -35,10 +35,10 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
     : palace.minorStars;
 
   const starColor = (star: Star, small: boolean) => {
-    if (isFeixing) return star.type === 'main' ? 'text-rose-800' : 'text-purple-800';
-    if (small || star.name === '天馬') return 'text-blue-700';
-    if (SIX_BAD.includes(star.name)) return 'text-slate-900';
-    return 'text-rose-700';
+    if (isFeixing) return star.type === 'main' ? 'text-rose-800 dark:text-rose-300' : 'text-purple-800 dark:text-purple-300';
+    if (small || star.name === '天馬') return 'text-blue-700 dark:text-blue-400';
+    if (SIX_BAD.includes(star.name)) return 'text-label';
+    return 'text-rose-700 dark:text-rose-400';
   };
 
   const renderBadges = (star: Star) => {
@@ -77,7 +77,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
         {star.name}
       </span>
       {!isFeixing && star.brightness && (
-        <span className="text-[8px] sm:text-[10px] text-slate-500 leading-none">{star.brightness}</span>
+        <span className="text-[8px] sm:text-[10px] text-label3 leading-none">{star.brightness}</span>
       )}
       {renderBadges(star)}
     </div>
@@ -90,7 +90,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       onClick={() => onSelect(palace)}
       data-palace-index={palace.index}
       className={`relative flex flex-col p-0.5 sm:p-1 min-h-[150px] sm:min-h-[200px] cursor-pointer select-none transition-colors ${
-        isSelected ? 'bg-amber-50' : 'bg-white hover:bg-slate-50'
+        isSelected ? 'bg-amber-50 dark:bg-amber-400/10' : 'bg-card hover:bg-grouped'
       }`}
     >
       {/* 星曜：直排，一欄一顆 */}
@@ -101,11 +101,11 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
 
       <div className="flex items-start justify-between mt-0.5">
         {palace.isLaiYinPalace ? (
-          <span className="[writing-mode:vertical-rl] text-[8px] sm:text-[10px] font-bold text-rose-600 border border-rose-500 rounded-sm px-px leading-tight">
+          <span className="[writing-mode:vertical-rl] text-[8px] sm:text-[10px] font-bold text-rose-600 dark:text-rose-400 border border-rose-500 rounded-sm px-px leading-tight">
             來因
           </span>
         ) : <span />}
-        {isEmpty && <span className="text-[8px] sm:text-[10px] text-slate-300">空宮</span>}
+        {isEmpty && <span className="text-[8px] sm:text-[10px] text-label4">空宮</span>}
       </div>
 
       <div className="flex-1" />
@@ -114,7 +114,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       {!isFeixing && palace.decadalStars && palace.decadalStars.length > 0 && (
         <div className="flex justify-end gap-px mb-0.5">
           {palace.decadalStars.map((s) => (
-            <span key={s} className="[writing-mode:vertical-rl] text-[8px] sm:text-[11px] text-green-700 leading-none">
+            <span key={s} className="[writing-mode:vertical-rl] text-[8px] sm:text-[11px] text-green-700 dark:text-green-400 leading-none">
               {s}
             </span>
           ))}
@@ -124,12 +124,12 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       {/* 年份歲數或流年／小限歲數 */}
       {!isFeixing && (
         palace.decadeYearInfo ? (
-          <div className="text-center text-[9px] sm:text-[11px] text-slate-600 leading-none mb-0.5">
+          <div className="text-center text-[9px] sm:text-[11px] text-label2 leading-none mb-0.5">
             {palace.decadeYearInfo.year}年{palace.decadeYearInfo.age}歲
           </div>
         ) : (
           palace.flowYearsList && !palace.dynamicDecadalName && (
-            <div className="hidden sm:block text-center text-[9px] text-slate-500 font-mono leading-tight mb-0.5">
+            <div className="hidden sm:block text-center text-[9px] text-label3 font-mono leading-tight mb-0.5">
               <div>流年: {palace.flowYearsList.slice(0, 5).join(',')}</div>
               <div>小限: {palace.smallLimitYears.slice(0, 5).join(',')}</div>
             </div>
@@ -140,7 +140,7 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
       {/* 底部 */}
       {isFeixing ? (
         <div className="flex items-end justify-between gap-0.5">
-          <div className="flex flex-col text-[9px] sm:text-xs text-blue-600 leading-tight whitespace-nowrap">
+          <div className="flex flex-col text-[9px] sm:text-xs text-blue-600 dark:text-blue-400 leading-tight whitespace-nowrap">
             {palace.decadeYearInfo && (
               <>
                 <span>{palace.decadeYearInfo.age}歲</span>
@@ -151,30 +151,30 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
             {palace.flowLevelName && <span className="font-bold">{palace.flowLevelName}</span>}
           </div>
           <div className="flex flex-col items-center leading-tight">
-            <span className="text-[9px] sm:text-xs text-slate-600 font-mono">
+            <span className="text-[9px] sm:text-xs text-label2 font-mono">
               {palace.decadalRange[0]}~{palace.decadalRange[1]}
             </span>
-            <span className="text-[12px] sm:text-lg font-black text-blue-900 whitespace-nowrap">
+            <span className="text-[12px] sm:text-lg font-black text-blue-900 dark:text-blue-300 whitespace-nowrap">
               {palace.name}
-              {palace.isBodyPalace && <span className="text-[9px] sm:text-xs text-rose-600 align-top">身</span>}
+              {palace.isBodyPalace && <span className="text-[9px] sm:text-xs text-rose-600 dark:text-rose-400 align-top">身</span>}
             </span>
           </div>
-          <span className="[writing-mode:vertical-rl] text-[13px] sm:text-xl font-black text-slate-900 leading-none">
+          <span className="[writing-mode:vertical-rl] text-[13px] sm:text-xl font-black text-label leading-none">
             {palace.stem}{palace.branch}
           </span>
         </div>
       ) : (
         <div className="flex items-end justify-between gap-0.5">
           <div className="flex flex-col text-[8px] sm:text-[10px] leading-tight whitespace-nowrap">
-            <span className="text-blue-600">{palace.boshi}</span>
-            <span className="text-slate-600">{palace.jiangqian}</span>
-            <span className="text-slate-600">{palace.suiqian}</span>
+            <span className="text-blue-600 dark:text-blue-400">{palace.boshi}</span>
+            <span className="text-label2">{palace.jiangqian}</span>
+            <span className="text-label2">{palace.suiqian}</span>
           </div>
           <div className="flex flex-col items-center leading-tight whitespace-nowrap">
             {palace.dynamicDecadalName ? (
-              <span className="text-[10px] sm:text-sm text-green-700">{palace.dynamicDecadalName}</span>
+              <span className="text-[10px] sm:text-sm text-green-700 dark:text-green-400">{palace.dynamicDecadalName}</span>
             ) : (
-              <span className="text-[9px] sm:text-xs text-slate-600 font-mono">
+              <span className="text-[9px] sm:text-xs text-label2 font-mono">
                 {palace.decadalRange[0]}~{palace.decadalRange[1]}
               </span>
             )}
@@ -186,16 +186,16 @@ export const PalaceCard: React.FC<PalaceCardProps> = ({ palace, mode, isSelected
                 {palace.flowLevelName}
               </span>
             )}
-            <span className="text-[11px] sm:text-sm font-bold text-rose-600">
+            <span className="text-[11px] sm:text-sm font-bold text-rose-600 dark:text-rose-400">
               {palace.name}
               {palace.isBodyPalace && <span className="text-[8px] sm:text-[10px] align-top">身</span>}
             </span>
           </div>
           <div className="flex items-end gap-px">
-            <span className="[writing-mode:vertical-rl] text-[8px] sm:text-[10px] text-slate-600 leading-none">
+            <span className="[writing-mode:vertical-rl] text-[8px] sm:text-[10px] text-label2 leading-none">
               {palace.changsheng}
             </span>
-            <span className="[writing-mode:vertical-rl] text-[13px] sm:text-lg font-bold text-slate-900 leading-none">
+            <span className="[writing-mode:vertical-rl] text-[13px] sm:text-lg font-bold text-label leading-none">
               {palace.stem}{palace.branch}
             </span>
           </div>

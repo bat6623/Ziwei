@@ -124,7 +124,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl my-auto">
+      <div className="bg-card border border-separator rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl my-auto">
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 p-4 border-b border-amber-400 flex justify-between items-center text-white">
           <div className="flex items-center gap-2">
@@ -139,15 +139,15 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-slate-800">
+        <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 text-label">
           {/* 快選按鈕工具列 */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
-            <span className="text-xs font-bold text-slate-500">快捷操作：</span>
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-separator pb-3">
+            <span className="text-xs font-bold text-label3">快捷操作：</span>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleFillNow}
-                className="text-xs bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-300 px-3 py-1 rounded-full flex items-center gap-1 transition font-bold"
+                className="text-xs bg-cyan-50 dark:bg-cyan-500/15 hover:bg-cyan-100 text-cyan-800 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/40 px-3 py-1 rounded-full flex items-center gap-1 transition font-bold"
               >
                 <Clock className="w-3.5 h-3.5 text-cyan-600" />
                 填入此刻時間
@@ -158,19 +158,19 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
           {/* 姓名與性別 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1 flex items-center gap-1">
+              <label className="block text-xs font-bold text-label2 mb-1 flex items-center gap-1">
                 <User className="w-3.5 h-3.5 text-amber-600" /> 姓名 / 代稱
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white"
+                className="w-full bg-grouped border border-separator rounded-lg px-3 py-2 text-label text-sm focus:outline-none focus:border-amber-500 focus:bg-card"
                 placeholder="選填，留空會顯示「未命名」"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-1">性別</label>
+              <label className="block text-xs font-bold text-label2 mb-1">性別</label>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
@@ -178,7 +178,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                   className={`py-2 text-xs font-bold rounded-lg border transition ${
                     gender === 'male'
                       ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                      : 'bg-fill text-label2 border-separator'
                   }`}
                 >
                   乾造 (男)
@@ -189,7 +189,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                   className={`py-2 text-xs font-bold rounded-lg border transition ${
                     gender === 'female'
                       ? 'bg-amber-500 text-white border-amber-600 shadow-xs'
-                      : 'bg-slate-100 text-slate-600 border-slate-200'
+                      : 'bg-fill text-label2 border-separator'
                   }`}
                 >
                   坤造 (女)
@@ -200,7 +200,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
 
           {/* 出生曆法 */}
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1">出生曆法</label>
+            <label className="block text-xs font-bold text-label2 mb-1">出生曆法</label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -208,7 +208,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                 className={`py-2 text-xs font-bold rounded-lg border transition ${
                   !isLunar
                     ? 'bg-cyan-600 text-white border-cyan-700 shadow-xs'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                    : 'bg-fill text-label2 border-separator'
                 }`}
               >
                 陽曆 (西元)
@@ -219,7 +219,7 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                 className={`py-2 text-xs font-bold rounded-lg border transition ${
                   isLunar
                     ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs'
-                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                    : 'bg-fill text-label2 border-separator'
                 }`}
               >
                 農曆 (陰曆)
@@ -230,55 +230,55 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
           {/* 日期快選 (含日曆 Pickers) */}
           <div className="space-y-2">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+              <label className="text-xs font-bold text-label2 flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-amber-600" /> 出生年月日
               </label>
               {/* 原生日曆快選 (國曆日曆，農曆模式不適用) */}
               {!isLunar && <div className="flex items-center gap-1">
-                <span className="text-[11px] text-slate-400">日曆點選:</span>
+                <span className="text-[11px] text-label3">日曆點選:</span>
                 <input
                   type="date"
                   value={datePickerValue}
                   onChange={handleDateChange}
-                  className="text-xs bg-slate-100 border border-slate-300 rounded px-2 py-0.5 text-slate-700 cursor-pointer focus:outline-none"
+                  className="text-xs bg-fill border border-separator rounded px-2 py-0.5 text-label2 cursor-pointer focus:outline-none"
                 />
               </div>}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <span className="text-[10px] text-slate-400">年</span>
+                <span className="text-[10px] text-label3">年</span>
                 <input
                   type="number"
                   value={year}
                   onChange={(e) => setYear(Number(e.target.value))}
                   min={1900}
                   max={2100}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-bold text-center focus:outline-none focus:border-amber-500"
+                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
                   required
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">月</span>
+                <span className="text-[10px] text-label3">月</span>
                 <input
                   type="number"
                   value={month}
                   onChange={(e) => setMonth(Number(e.target.value))}
                   min={1}
                   max={12}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-bold text-center focus:outline-none focus:border-amber-500"
+                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
                   required
                 />
               </div>
               <div>
-                <span className="text-[10px] text-slate-400">日</span>
+                <span className="text-[10px] text-label3">日</span>
                 <input
                   type="number"
                   value={day}
                   onChange={(e) => setDay(Number(e.target.value))}
                   min={1}
                   max={31}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-2.5 py-1.5 text-slate-900 text-sm font-bold text-center focus:outline-none focus:border-amber-500"
+                  className="w-full bg-grouped border border-separator rounded-lg px-2.5 py-1.5 text-label text-sm font-bold text-center focus:outline-none focus:border-amber-500"
                   required
                 />
               </div>
@@ -286,12 +286,12 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
           </div>
 
           {/* 十二地支時辰快捷選擇器 */}
-          <div className="space-y-2 border-t border-slate-100 pt-3">
+          <div className="space-y-2 border-t border-separator pt-3">
             <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-600 flex items-center gap-1">
+              <label className="text-xs font-bold text-label2 flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-amber-600" /> 出生時辰快捷點選 (十二地支)
               </label>
-              <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+              <span className="text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-400/10 px-2 py-0.5 rounded border border-amber-200 dark:border-amber-500/30">
                 目前選定：{currentZodiac} ({String(hour).padStart(2, '0')}:{String(minute).padStart(2, '0')})
               </span>
             </div>
@@ -308,14 +308,14 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
                     className={`flex flex-col items-center justify-center p-1.5 rounded-lg border transition text-center cursor-pointer ${
                       isSelected
                         ? 'bg-amber-500 text-white border-amber-600 shadow-xs font-black'
-                        : 'bg-slate-50 hover:bg-amber-50 text-slate-700 border-slate-200 hover:border-amber-300'
+                        : 'bg-grouped hover:bg-amber-50 text-label2 border-separator hover:border-amber-300'
                     }`}
                   >
                     <span className="text-xs font-bold font-serif flex items-center gap-0.5">
                       {item.name}
                       {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
                     </span>
-                    <span className={`text-[9px] ${isSelected ? 'text-amber-100' : 'text-slate-400'}`}>
+                    <span className={`text-[9px] ${isSelected ? 'text-amber-100' : 'text-label3'}`}>
                       {item.range}
                     </span>
                   </button>
@@ -326,26 +326,26 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
             {/* 精細小時/分鐘數字調校 */}
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">小時 (0~23 時)</label>
+                <label className="block text-[11px] font-bold text-label3 mb-1">小時 (0~23 時)</label>
                 <input
                   type="number"
                   value={hour}
                   onChange={(e) => setHour(Number(e.target.value))}
                   min={0}
                   max={23}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm text-center font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-grouped border border-separator rounded-lg px-3 py-1.5 text-label text-sm text-center font-mono focus:outline-none focus:border-amber-500"
                   required
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold text-slate-500 mb-1">分鐘 (0~59 分)</label>
+                <label className="block text-[11px] font-bold text-label3 mb-1">分鐘 (0~59 分)</label>
                 <input
                   type="number"
                   value={minute}
                   onChange={(e) => setMinute(Number(e.target.value))}
                   min={0}
                   max={59}
-                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-slate-900 text-sm text-center font-mono focus:outline-none focus:border-amber-500"
+                  className="w-full bg-grouped border border-separator rounded-lg px-3 py-1.5 text-label text-sm text-center font-mono focus:outline-none focus:border-amber-500"
                   required
                 />
               </div>
@@ -353,9 +353,9 @@ export const InputModal: React.FC<InputModalProps> = ({ isOpen, onClose, onSubmi
           </div>
 
           {/* 排盤提交按鈕 */}
-          <div className="pt-3 border-t border-slate-200">
+          <div className="pt-3 border-t border-separator">
             {error && (
-              <p role="alert" className="mb-2 text-xs font-bold text-rose-600 text-center">{error}</p>
+              <p role="alert" className="mb-2 text-xs font-bold text-rose-600 dark:text-rose-400 text-center">{error}</p>
             )}
             <button
               type="submit"

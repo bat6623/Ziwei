@@ -100,9 +100,9 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
     <div className="w-full flex flex-col items-center">
       <div
         data-export="ziwei-grid"
-        className="relative w-full max-w-5xl bg-white p-1 sm:p-2 rounded-xl border border-slate-200 shadow-xs"
+        className="relative w-full max-w-5xl bg-card p-1 sm:p-2 rounded-xl border border-separator shadow-xs"
       >
-        <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-slate-500 font-serif mb-1">
+        <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-label3 font-serif mb-1">
           <span>南偏東</span>
           <span>正南方</span>
           <span>南偏西</span>
@@ -111,9 +111,9 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
 
         <div className="relative">
           {/* 細線表格：用 1px 間距露出底色當格線 */}
-          <div className="grid grid-cols-4 gap-px bg-slate-300 border border-slate-300 w-full">
+          <div className="grid grid-cols-4 gap-px bg-separator border border-separator w-full">
             {(['巳', '午', '未', '申', '辰'] as EarthlyBranch[]).map(renderCell)}
-            <div className="col-span-2 row-span-2 bg-white">
+            <div className="col-span-2 row-span-2 bg-card">
               <CentralPanel data={data} mode={mode} onShift={onShift} />
             </div>
             {(['酉', '卯', '戌', '寅', '丑', '子', '亥'] as EarthlyBranch[]).map(renderCell)}
@@ -146,7 +146,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
           {lines.filter((l) => l.label).map((l, i) => (
             <span
               key={`lb-${i}`}
-              className="absolute z-30 pointer-events-none -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-white text-[10px] font-bold border"
+              className="absolute z-30 pointer-events-none -translate-x-1/2 -translate-y-1/2 inline-flex items-center justify-center w-4 h-4 rounded-full bg-card text-[10px] font-bold border"
               style={{ ...labelPos(l), color: l.color, borderColor: l.color }}
             >
               {l.label}
@@ -154,7 +154,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift }) => 
           ))}
         </div>
 
-        <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-slate-500 font-serif mt-1">
+        <div className="hidden sm:grid grid-cols-4 text-center text-[11px] text-label3 font-serif mt-1">
           <span>東偏北</span>
           <span>北偏東</span>
           <span>正北方</span>

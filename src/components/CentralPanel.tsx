@@ -10,8 +10,8 @@ interface CentralPanelProps {
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className="flex flex-wrap items-baseline gap-x-1">
-    <span className="text-slate-500 shrink-0">{label}：</span>
-    <span className="text-slate-900 font-medium">{children}</span>
+    <span className="text-label3 shrink-0">{label}：</span>
+    <span className="text-label font-medium">{children}</span>
   </div>
 );
 
@@ -30,14 +30,14 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
   const { userInfo } = data;
   const isFeixing = mode === 'feixing';
 
-  const shiftBtn = 'px-1.5 sm:px-2 py-0.5 border border-slate-300 rounded bg-white text-slate-800 hover:bg-slate-100 active:bg-slate-200 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+  const shiftBtn = 'px-1.5 sm:px-2 py-0.5 border border-separator rounded bg-card text-label hover:bg-fill active:bg-fill2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
 
   return (
-    <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-slate-800">
-      <h2 className="text-center text-sm sm:text-xl font-serif font-bold text-slate-900 tracking-wider">紫微命盤</h2>
+    <div className="w-full h-full p-1.5 sm:p-3 flex flex-col gap-1 sm:gap-1.5 text-[10px] sm:text-[13px] leading-snug text-label">
+      <h2 className="text-center text-sm sm:text-xl font-serif font-bold text-label tracking-wider">紫微命盤</h2>
 
       <div className="flex flex-wrap justify-between gap-x-2">
-        <span><span className="text-slate-500">姓名：</span>{userInfo.name}</span>
+        <span><span className="text-label3">姓名：</span>{userInfo.name}</span>
         <span className="font-medium">{userInfo.yinyangGender} {userInfo.fiveElementElement}</span>
       </div>
       <Row label="真太陽時">{userInfo.trueSolarBirth}</Row>
@@ -47,17 +47,17 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
       {!isFeixing && (
         <>
           <div className="flex flex-wrap gap-x-2">
-            <span><span className="text-slate-500">命主：</span>{userInfo.masterStar}</span>
-            <span><span className="text-slate-500">身主：</span>{userInfo.bodyMasterStar}</span>
-            <span><span className="text-slate-500">子斗：</span>{userInfo.ziDou}</span>
+            <span><span className="text-label3">命主：</span>{userInfo.masterStar}</span>
+            <span><span className="text-label3">身主：</span>{userInfo.bodyMasterStar}</span>
+            <span><span className="text-label3">子斗：</span>{userInfo.ziDou}</span>
           </div>
 
           {/* 節氣與非節氣四柱 */}
           <div className="grid grid-cols-2 gap-2">
             {([['節氣四柱', userInfo.fourPillars], ['非節氣四柱', userInfo.nonTermFourPillars]] as const).map(([label, pillars]) => (
               <div key={label}>
-                <div className="text-[9px] sm:text-[11px] text-slate-500">{label}</div>
-                <div className="grid grid-cols-4 text-center font-serif font-bold text-[12px] sm:text-lg leading-tight text-slate-900">
+                <div className="text-[9px] sm:text-[11px] text-label3">{label}</div>
+                <div className="grid grid-cols-4 text-center font-serif font-bold text-[12px] sm:text-lg leading-tight text-label">
                   {[pillars.year, pillars.month, pillars.day, pillars.time].map((gz, i) => (
                     <div key={i} className="flex flex-col">
                       <span>{gz.charAt(0)}</span>
@@ -75,10 +75,10 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
             <div className="grid grid-cols-8 text-center leading-tight">
               {userInfo.luckCycles.map((c) => (
                 <div key={c.stemBranch + c.age} className="flex flex-col items-center">
-                  <span className="text-[7px] sm:text-[9px] text-slate-500">{c.tenGod}</span>
-                  <span className="[writing-mode:vertical-rl] font-serif font-bold text-[11px] sm:text-sm text-slate-900">{c.stemBranch}</span>
-                  <span className="text-[7px] sm:text-[10px] text-slate-500">{c.age}歲</span>
-                  <span className="text-[7px] sm:text-[10px] text-slate-400">{c.year}</span>
+                  <span className="text-[7px] sm:text-[9px] text-label3">{c.tenGod}</span>
+                  <span className="[writing-mode:vertical-rl] font-serif font-bold text-[11px] sm:text-sm text-label">{c.stemBranch}</span>
+                  <span className="text-[7px] sm:text-[10px] text-label3">{c.age}歲</span>
+                  <span className="text-[7px] sm:text-[10px] text-label3">{c.year}</span>
                 </div>
               ))}
             </div>
@@ -98,7 +98,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
       <div className="flex-1" />
 
       {/* 圖例 */}
-      <div className="flex flex-wrap justify-center gap-x-2 gap-y-0.5 text-[9px] sm:text-[11px] text-slate-600">
+      <div className="flex flex-wrap justify-center gap-x-2 gap-y-0.5 text-[9px] sm:text-[11px] text-label2">
         {mode === 'sanhe' && (
           <>
             <Chip color={MUTAGEN_COLOR['忌']} text="生年四化" />
@@ -127,7 +127,7 @@ export const CentralPanel: React.FC<CentralPanelProps> = ({ data, mode, onShift 
       )}
 
       {userInfo.activeFlowCycleInfo && (
-        <div className="text-center rounded bg-blue-50 text-blue-800 px-1 py-0.5 text-[9px] sm:text-xs font-medium">
+        <div className="text-center rounded bg-blue-50 dark:bg-blue-500/15 text-blue-800 dark:text-blue-300 px-1 py-0.5 text-[9px] sm:text-xs font-medium">
           {userInfo.activeFlowCycleInfo}
         </div>
       )}
