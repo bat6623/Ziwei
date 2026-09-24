@@ -5,6 +5,9 @@ export type Mutagen = '祿' | '權' | '科' | '忌';
 export type EarthlyBranch = '子' | '丑' | '寅' | '卯' | '辰' | '巳' | '午' | '未' | '申' | '酉' | '戌' | '亥';
 export type HeavenlyStem = '甲' | '乙' | '丙' | '丁' | '戊' | '己' | '庚' | '辛' | '壬' | '癸';
 
+// 頁面切換模式: 飛星 | 三合 | 四化
+export type ChartTabMode = 'feixing' | 'sanhe' | 'sihua';
+
 export interface Star {
   id: string;
   name: string;
@@ -37,26 +40,22 @@ export interface PalaceData {
   direction: string;
   directionEightTrigram: string;
   isBodyPalace: boolean;
-  isLaiYinPalace: boolean; // 是否為【來因宮】
+  isLaiYinPalace: boolean;
   
-  // 流年與大限縮寫
-  flowYearPalaceName?: string; // 如: 年兄、年命、年父
-  decadalPalaceName?: string; // 如: 大遷、大疾、大財
+  flowYearPalaceName?: string;
+  decadalPalaceName?: string;
   
-  // 星曜分類
   mainStars: Star[];
   luckyStars: Star[];
   badStars: Star[];
   minorStars: Star[];
   godStars: Star[];
   
-  // 三神煞
   boshi: string;
   suiqian: string;
   jiangqian: string;
   changsheng: string;
 
-  // 限運資訊
   decadalRange: [number, number];
   decadalStemBranch?: string;
   smallLimitYears: number[];
@@ -70,12 +69,11 @@ export interface FourPillars {
   time: string;
 }
 
-// 八字大運走勢單步結構
 export interface LuckCycleStep {
-  stemBranch: string; // 干支 (如 己巳)
-  tenGod: string; // 十神 (如 食神, 傷官, 比肩)
-  age: number; // 虛歲 (如 9歲, 19歲)
-  year: number; // 公曆西元年 (如 1987)
+  stemBranch: string;
+  tenGod: string;
+  age: number;
+  year: number;
 }
 
 export interface BirthInput {
@@ -105,16 +103,16 @@ export interface ZiweiChartData {
     masterStar: string;
     bodyMasterStar: string;
     ziDou: EarthlyBranch;
-    solarBirth: string; // 鐘錶時間
-    trueSolarBirth: string; // 真太陽時
-    lunarBirth: string; // 農曆時間
+    solarBirth: string;
+    trueSolarBirth: string;
+    lunarBirth: string;
     fourPillars: FourPillars;
     nonTermFourPillars: FourPillars;
     startAgeNotice: string;
-    startAgeDetail: string; // "出生後 7年 6月22天 八字起運"
+    startAgeDetail: string;
     currentDecade: string;
     currentFlowYear: string;
-    luckCycles: LuckCycleStep[]; // 八字大運走勢
+    luckCycles: LuckCycleStep[];
   };
 
   palaces: PalaceData[];

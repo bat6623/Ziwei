@@ -1,18 +1,44 @@
 import React, { useState, useRef, useEffect } from 'react';
-import type { ZiweiChartData, PalaceData, EarthlyBranch } from '../types/ziwei';
+import type { ZiweiChartData, PalaceData, EarthlyBranch, ChartTabMode, HeavenlyStem, Mutagen } from '../types/ziwei';
 import { PalaceCard } from './PalaceCard';
 import { CentralPanel } from './CentralPanel';
 
 interface ZiweiGridProps {
   data: ZiweiChartData;
+  mode: ChartTabMode; // 頁面切換模式: 飛星 | 三合 | 四化
   onPalaceSelect?: (palace: PalaceData | null) => void;
 }
 
-export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) => {
+interface FlyingLine {
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  type: Mutagen | 'sanhe' | 'sihua';
+  label: string;
+  color: string;
+}
+
+// 十天干飛星四化對照表
+const STEM_FLYING_MUTAGENS: Record<HeavenlyStem, Record<Mutagen, string>> = {
+  '甲': { '祿': '廉貞', '權': '破軍', '科': '武曲', '忌': '太陽' },
+  '乙': { '祿': '天機', '權': '天梁', '科': '紫微', '忌': '太陰' },
+  '丙': { '祿': '天同', '權': '天機', '科': '文昌', '忌': '廉貞' },
+  '丁': { '祿': '太陰', '權': '天同', '科': '天機', '忌': '巨門' },
+  '戊': { '祿': '貪狼', '權': '太陰', '科': '右弼', '忌': '天機' },
+  '己': { '祿': '武曲', '權': '貪狼', '科': '天梁', '忌': '文曲' },
+  '庚': { '祿': '太陽', '權': '武曲', '科': '太陰', '忌': '天同' },
+  '辛': { '祿': '巨門', '權': '太陽', '科': '文曲', '忌': '文昌' },
+  '壬': { '祿': '天梁', '權': '紫微', '科': '左輔', '忌': '武曲' },
+  '癸': { '祿': '破軍', '權': '巨門', '科': '太陰', '忌': '貪狼' }
+};
+
+export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onPalaceSelect }) => {
   const [selectedPalace, setSelectedPalace] = useState<PalaceData | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [lineCoords, setLineCoords] = useState<{ x1: number; y1: number; x2: number; y2: number }[]>([]);
+  const [lineCoords, setLineCoords] = useState<FlyingLine[]>([]);
 
+  // 取得三方四正宮位索引清單 (三合模式用)
   const getSanFangIndexList = (palace: PalaceData | null): number[] => {
     if (!palace) return [];
     const idx = palace.index;
@@ -24,46 +50,126 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
     ];
   };
 
-  const sanFangIndices = getSanFangIndexList(selectedPalace);
+  const sanFangIndices = mode === 'sanhe' ? getSanFangIndexList(selectedPalace) : [];
 
+  // 根據 mode (飛星/三合/四化) 與 selectedPalace 動態計算引線
   useEffect(() => {
-    if (!selectedPalace || !containerRef.current) {
+    if (!containerRef.current) {
       setLineCoords([]);
       return;
     }
 
     const container = containerRef.current;
     const containerRect = container.getBoundingClientRect();
-    const indices = getSanFangIndexList(selectedPalace);
 
-    const coords: { x: number; y: number }[] = [];
-    indices.forEach((idx) => {
+    // 取得指定宮位索引 DOM 中點
+    const getPalaceCenterCoord = (idx: number) => {
       const el = container.querySelector(`[data-palace-index="${idx}"]`);
       if (el) {
         const rect = el.getBoundingClientRect();
-        coords.push({
+        return {
           x: rect.left + rect.width / 2 - containerRect.left,
           y: rect.top + rect.height / 2 - containerRect.top,
-        });
+        };
       }
-    });
+      return null;
+    };
 
-    if (coords.length === 4) {
-      const lines = [
-        { x1: coords[0].x, y1: coords[0].y, x2: coords[1].x, y2: coords[1].y },
-        { x1: coords[0].x, y1: coords[0].y, x2: coords[2].x, y2: coords[2].y },
-        { x1: coords[0].x, y1: coords[0].y, x2: coords[3].x, y2: coords[3].y },
-        { x1: coords[2].x, y1: coords[2].y, x2: coords[3].x, y2: coords[3].y },
-      ];
+    // 模式一：飛星模式 (Flying Star Mode)
+    if (mode === 'feixing') {
+      if (!selectedPalace) {
+        setLineCoords([]);
+        return;
+      }
+      const stem = selectedPalace.stem; // 選中宮位的宮幹 (如 辛)
+      const mutagens = STEM_FLYING_MUTAGENS[stem];
+      const startCoord = getPalaceCenterCoord(selectedPalace.index);
+      if (!startCoord) return;
+
+      const lines: FlyingLine[] = [];
+      const mutColors: Record<Mutagen, { color: string; label: string }> = {
+        '祿': { color: '#059669', label: '飛祿' },
+        '權': { color: '#e11d48', label: '飛權' },
+        '科': { color: '#9333ea', label: '飛科' },
+        '忌': { color: '#0284c7', label: '飛忌' },
+      };
+
+      (Object.keys(mutagens) as Mutagen[]).forEach((m) => {
+        const targetStarName = mutagens[m];
+        // 尋找全盤中帶有該星曜的宮位
+        const targetPalace = data.palaces.find((p) =>
+          [...p.mainStars, ...p.luckyStars].some((s) => s.name === targetStarName)
+        );
+        if (targetPalace && targetPalace.index !== selectedPalace.index) {
+          const endCoord = getPalaceCenterCoord(targetPalace.index);
+          if (endCoord) {
+            lines.push({
+              x1: startCoord.x,
+              y1: startCoord.y,
+              x2: endCoord.x,
+              y2: endCoord.y,
+              type: m,
+              label: `${mutColors[m].label}(${targetStarName})`,
+              color: mutColors[m].color,
+            });
+          }
+        }
+      });
       setLineCoords(lines);
     }
-  }, [selectedPalace]);
+    // 模式二：三合模式 (Sanhe Mode)
+    else if (mode === 'sanhe') {
+      if (!selectedPalace) {
+        setLineCoords([]);
+        return;
+      }
+      const indices = getSanFangIndexList(selectedPalace);
+      const coords = indices.map((idx) => getPalaceCenterCoord(idx)).filter(Boolean) as { x: number; y: number }[];
+
+      if (coords.length === 4) {
+        const lines: FlyingLine[] = [
+          { x1: coords[0].x, y1: coords[0].y, x2: coords[1].x, y2: coords[1].y, type: 'sanhe', label: '對宮衝照', color: '#0284c7' },
+          { x1: coords[0].x, y1: coords[0].y, x2: coords[2].x, y2: coords[2].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
+          { x1: coords[0].x, y1: coords[0].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '三方會照', color: '#d97706' },
+          { x1: coords[2].x, y1: coords[2].y, x2: coords[3].x, y2: coords[3].y, type: 'sanhe', label: '財官連線', color: '#059669' },
+        ];
+        setLineCoords(lines);
+      }
+    }
+    // 模式三：四化模式 (Sihua Mode)
+    else if (mode === 'sihua') {
+      // 在四化模式下，連線全盤生年四化所在宮位與對宮
+      const lines: FlyingLine[] = [];
+      data.palaces.forEach((p) => {
+        p.mainStars.concat(p.luckyStars).forEach((star) => {
+          if (star.mutagen) {
+            const startCoord = getPalaceCenterCoord(p.index);
+            const oppositeIdx = (p.index + 6) % 12;
+            const endCoord = getPalaceCenterCoord(oppositeIdx);
+            if (startCoord && endCoord) {
+              const mColors: Record<Mutagen, string> = { '祿': '#059669', '權': '#e11d48', '科': '#9333ea', '忌': '#0284c7' };
+              lines.push({
+                x1: startCoord.x,
+                y1: startCoord.y,
+                x2: endCoord.x,
+                y2: endCoord.y,
+                type: star.mutagen,
+                label: `生年${star.mutagen}(${star.name})`,
+                color: mColors[star.mutagen] || '#d97706',
+              });
+            }
+          }
+        });
+      });
+      setLineCoords(lines);
+    }
+  }, [selectedPalace, mode, data]);
 
   const getPalaceByBranch = (branch: EarthlyBranch): PalaceData => {
     return data.palaces.find((p) => p.branch === branch) || data.palaces[0];
   };
 
-  // 再次點擊相同宮位卡片時：立刻清除連線與高亮
+  // 再次點擊相同宮位時取消選中與連線
   const handleSelect = (palace: PalaceData) => {
     if (selectedPalace && selectedPalace.branch === palace.branch) {
       setSelectedPalace(null);
@@ -81,8 +187,8 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
         ref={containerRef}
         className="relative w-full max-w-5xl bg-slate-100 p-2 sm:p-3 rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
       >
-        {/* 三方四正連線 (僅在有選中宮位時呈現) */}
-        {selectedPalace && lineCoords.length > 0 && (
+        {/* 動態引線圖層 (飛星/三合/四化模式專屬連線) */}
+        {lineCoords.length > 0 && (
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-30">
             {lineCoords.map((line, i) => (
               <g key={i}>
@@ -91,20 +197,22 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, onPalaceSelect }) =>
                   y1={line.y1}
                   x2={line.x2}
                   y2={line.y2}
-                  stroke="#0284c7"
+                  stroke={line.color}
                   strokeWidth="2.5"
                   strokeDasharray="5 5"
                   className="animate-pulse"
                 />
-                <line
-                  x1={line.x1}
-                  y1={line.y1}
-                  x2={line.x2}
-                  y2={line.y2}
-                  stroke="#d97706"
-                  strokeWidth="1.5"
-                  strokeOpacity="0.8"
-                />
+                <circle cx={(line.x1 + line.x2) / 2} cy={(line.y1 + line.y2) / 2} r="10" fill="#ffffff" stroke={line.color} strokeWidth="1.5" />
+                <text
+                  x={(line.x1 + line.x2) / 2}
+                  y={(line.y1 + line.y2) / 2 + 3}
+                  textAnchor="middle"
+                  fill={line.color}
+                  fontSize="9"
+                  fontWeight="bold"
+                >
+                  {line.type.length === 1 ? line.type : '線'}
+                </text>
               </g>
             ))}
           </svg>
