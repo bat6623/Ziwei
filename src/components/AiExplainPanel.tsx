@@ -8,6 +8,8 @@ import {
   buildQuestion,
   explainChart,
   listGeminiModels,
+  pickDefaultModel,
+  testGeminiModel,
   loadAiSettings,
   saveAiSettings,
   type AiSettings,
@@ -111,7 +113,13 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
         if (handleRef.current !== handle) return;
         setPhase('error');
         setError(e instanceof AiExplainError ? e.message : '發生未知錯誤');
-        if (e instanceof AiExplainError && e.kind === 'auth') setEditingKey(true);
+        // 金鑰錯或模型不能用：直接打開設定，模型的話順便重新查清單
+        if (e instanceof AiExplainError && (e.kind === 'auth' || e.kind === 'model')) {
+          setKeyDraft('');
+          setModelDraft(settings.geminiModel);
+          setEditingKey(true);
+          if (e.kind === 'model') void checkGemini(e.message);
+        }
       },
     );
   };
@@ -137,16 +145,20 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
   // 已存的金鑰 (表單沒填新的就沿用)
   const effectiveKey = keyDraft.trim() || settings.geminiKey;
 
-  // 用金鑰查模型清單，預設選第一個名稱有 flash 的 (通常較快較便宜)
-  const checkGemini = async () => {
+  // 用金鑰查模型清單，預設選最新的正式版 Flash (較快較便宜)
+  const checkGemini = async (keepMessage?: string) => {
     if (!effectiveKey) return;
     setChecking(true);
-    setError('');
+    setError(keepMessage ?? '');
     try {
       const list = await listGeminiModels(effectiveKey);
       setModels(list);
       setManualModel(!list.length);
-      if (list.length && !list.some((m) => m.id === modelDraft)) setModelDraft((list.find((m) => /flash/i.test(m.id)) ?? list[0]).id);
+      if (list.length && (keepMessage || !list.some((m) => m.id === modelDraft))) {
+        // 原本的模型不能用時，改選另一個
+        const others = keepMessage ? list.filter((m) => m.id !== settings.geminiModel) : list;
+        setModelDraft(pickDefaultModel(others.length ? others : list));
+      }
       if (!list.length) setError('Google 沒有回傳可用的模型清單，請在下方直接輸入模型名稱（可在 Google AI Studio 查到）');
     } catch (e) {
       setModels([]);
@@ -158,8 +170,19 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
 
   const canSave = !!effectiveKey && !!modelDraft;
 
-  const saveKey = () => {
-    if (!canSave) return;
+  const [testing, setTesting] = useState(false);
+  const saveKey = async () => {
+    if (!canSave || testing) return;
+    setTesting(true);
+    setError('');
+    try {
+      await testGeminiModel(effectiveKey, modelDraft);
+    } catch (e) {
+      setError(e instanceof AiExplainError ? e.message : '測試失敗，請換一個模型');
+      setTesting(false);
+      return;
+    }
+    setTesting(false);
     commit({ geminiKey: effectiveKey, geminiModel: modelDraft });
     setKeyDraft('');
     setEditingKey(false);
@@ -238,7 +261,7 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
               onKeyDown={(e) => {
                 if (e.key !== 'Enter') return;
                 if (!models.length) void checkGemini();
-                else saveKey();
+                else void saveKey();
               }}
               placeholder={settings.geminiKey ? '已存金鑰（要換再貼新的）' : 'AIza…'}
               className="mt-2 w-full h-11 rounded-full bg-card px-5 text-[15px] text-label placeholder:text-label3 outline-none focus:ring-2 focus:ring-accent"
@@ -250,7 +273,7 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
                 <label htmlFor="ai-model" className="flex-1 text-[15px] text-label">模型</label>
                 <button
                   type="button"
-                  onClick={checkGemini}
+                  onClick={() => void checkGemini()}
                   disabled={!effectiveKey || checking}
                   className="h-9 px-4 rounded-full border border-separator text-[13px] text-label enabled:hover:bg-fill enabled:active:bg-fill2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                 >
@@ -284,7 +307,9 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={saveKey} disabled={!canSave} className={`flex-1 sm:flex-none ${primary}`}>存在這台裝置</button>
+            <button type="button" onClick={() => void saveKey()} disabled={!canSave || testing} className={`flex-1 sm:flex-none ${primary}`}>
+              {testing ? '測試模型中…' : '測試並存在這台裝置'}
+            </button>
             {ready && (
               <button type="button" onClick={() => { setEditingKey(false); setKeyDraft(''); setError(''); }} className={`flex-1 sm:flex-none ${outline}`}>取消</button>
             )}

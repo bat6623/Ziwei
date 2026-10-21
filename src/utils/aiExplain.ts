@@ -152,7 +152,7 @@ const SYSTEM_PROMPT = `你是紫微斗數老師，替一般人看懂命盤。
 建議的段落：一句話總結 → 個性與優勢 → 要留意的地方 → （有選流運時）這段時間的重點。`;
 
 
-export type AiErrorKind = 'auth' | 'permission' | 'rate' | 'network' | 'overloaded' | 'refusal' | 'other';
+export type AiErrorKind = 'auth' | 'permission' | 'rate' | 'network' | 'overloaded' | 'refusal' | 'model' | 'other';
 
 export class AiExplainError extends Error {
   kind: AiErrorKind;
@@ -187,7 +187,7 @@ async function geminiError(res: Response): Promise<AiExplainError> {
   }
   if (res.status === 400 && /api key/i.test(msg)) return new AiExplainError('auth', '金鑰不正確，請重新貼上');
   if (res.status === 401 || res.status === 403) return new AiExplainError('permission', '這把金鑰沒有使用權限，請到 Google AI Studio 確認');
-  if (res.status === 404) return new AiExplainError('other', '找不到這個模型，請重新選擇模型');
+  if (res.status === 404) return new AiExplainError('model', `這個模型不能用，請換一個${msg ? `（Google：${msg}）` : ''}`);
   if (res.status === 429) return new AiExplainError('rate', '使用太頻繁或免費額度用完，稍等一下再試');
   if (res.status >= 500) return new AiExplainError('overloaded', 'AI 服務暫時忙碌，請過一會兒再試');
   return new AiExplainError('other', `AI 服務回傳錯誤（${res.status}）${msg ? `：${msg}` : ''}`);
@@ -220,7 +220,36 @@ export async function listGeminiModels(apiKey: string): Promise<GeminiModel[]> {
   // 排除專做語音、圖片、向量等的模型；全被排除時就全部列出，讓使用者自己挑
   const general = textModels.filter((m) => /gemini/i.test(m.name) && !/(embedding|tts|image|imagen|veo|audio|live|aqa)/i.test(m.name));
   const id = (m: RawModel) => m.name.replace(/^models\//, '');
-  return (general.length ? general : textModels).map((m) => ({ id: id(m), label: m.displayName ? `${m.displayName}（${id(m)}）` : id(m) }));
+  // 新版排前面 (清單裡常留著已停用的舊模型，選到會失敗)
+  return sortNewestFirst((general.length ? general : textModels).map((m) => ({ id: id(m), label: m.displayName ? `${m.displayName}（${id(m)}）` : id(m) })));
+}
+
+const versionOf = (id: string) => Number(id.match(/gemini-(\d+(?:\.\d+)?)/)?.[1] ?? 0);
+const isPreview = (id: string) => /(preview|exp|latest)/i.test(id);
+
+function sortNewestFirst(list: GeminiModel[]): GeminiModel[] {
+  return [...list].sort((a, b) => versionOf(b.id) - versionOf(a.id) || Number(isPreview(a.id)) - Number(isPreview(b.id)) || a.id.localeCompare(b.id));
+}
+
+/** 預設模型：最新的正式版 Flash；沒有就最新的 Flash；再沒有就清單第一個 */
+export function pickDefaultModel(list: GeminiModel[]): string {
+  const flash = list.filter((m) => /flash/i.test(m.id) && !/lite/i.test(m.id));
+  return (flash.find((m) => !isPreview(m.id)) ?? flash[0] ?? list[0])?.id ?? '';
+}
+
+/** 存設定前先用很短的請求試一次，確認這個模型真的能用 (費用極少) */
+export async function testGeminiModel(apiKey: string, model: string): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(`${GEMINI_BASE}/models/${encodeURIComponent(model)}:generateContent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': apiKey },
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: '回覆「好」' }] }], generationConfig: { maxOutputTokens: 64 } }),
+    });
+  } catch {
+    throw new AiExplainError('network', '連不上 Google，請檢查網路');
+  }
+  if (!res.ok) throw await geminiError(res);
 }
 
 function explainWithGemini(
