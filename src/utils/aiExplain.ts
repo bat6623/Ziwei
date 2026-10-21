@@ -195,19 +195,32 @@ async function geminiError(res: Response): Promise<AiExplainError> {
 
 /** 用使用者的金鑰查可以用的 Gemini 模型 (不寫死模型名稱，Google 改版也不會壞) */
 export async function listGeminiModels(apiKey: string): Promise<GeminiModel[]> {
-  let res: Response;
-  try {
-    res = await fetch(`${GEMINI_BASE}/models?pageSize=1000`, { headers: { 'x-goog-api-key': apiKey } });
-  } catch {
-    throw new AiExplainError('network', '連不上 Google，請檢查網路');
+  type RawModel = { name: string; displayName?: string; supportedGenerationMethods?: string[] };
+  const all: RawModel[] = [];
+  let pageToken = '';
+  // 清單可能分好幾頁
+  for (let page = 0; page < 10; page++) {
+    let res: Response;
+    try {
+      const q = new URLSearchParams({ pageSize: '100' });
+      if (pageToken) q.set('pageToken', pageToken);
+      res = await fetch(`${GEMINI_BASE}/models?${q}`, { headers: { 'x-goog-api-key': apiKey } });
+    } catch {
+      throw new AiExplainError('network', '連不上 Google，請檢查網路');
+    }
+    if (!res.ok) throw await geminiError(res);
+    const body = (await res.json()) as { models?: RawModel[]; nextPageToken?: string };
+    all.push(...(body.models ?? []));
+    pageToken = body.nextPageToken ?? '';
+    if (!pageToken) break;
   }
-  if (!res.ok) throw await geminiError(res);
-  const body = (await res.json()) as {
-    models?: { name: string; displayName?: string; supportedGenerationMethods?: string[] }[];
-  };
-  return (body.models ?? [])
-    .filter((m) => m.supportedGenerationMethods?.includes('streamGenerateContent') && m.name.includes('gemini'))
-    .map((m) => ({ id: m.name.replace(/^models\//, ''), label: m.displayName || m.name.replace(/^models\//, '') }));
+
+  // 能產生文字的模型 (Google 的清單只寫 generateContent，串流用的是同一個能力)
+  const textModels = all.filter((m) => m.supportedGenerationMethods?.includes('generateContent'));
+  // 排除專做語音、圖片、向量等的模型；全被排除時就全部列出，讓使用者自己挑
+  const general = textModels.filter((m) => /gemini/i.test(m.name) && !/(embedding|tts|image|imagen|veo|audio|live|aqa)/i.test(m.name));
+  const id = (m: RawModel) => m.name.replace(/^models\//, '');
+  return (general.length ? general : textModels).map((m) => ({ id: id(m), label: m.displayName ? `${m.displayName}（${id(m)}）` : id(m) }));
 }
 
 function explainWithGemini(

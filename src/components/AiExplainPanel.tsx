@@ -75,6 +75,8 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [modelDraft, setModelDraft] = useState(settings.geminiModel);
   const [checking, setChecking] = useState(false);
+  // 查詢成功但清單是空的：改成讓使用者自己輸入模型名稱
+  const [manualModel, setManualModel] = useState(false);
   const [phase, setPhase] = useState<Phase>('idle');
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
@@ -143,8 +145,9 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
     try {
       const list = await listGeminiModels(effectiveKey);
       setModels(list);
-      if (!list.some((m) => m.id === modelDraft)) setModelDraft((list.find((m) => /flash/i.test(m.id)) ?? list[0])?.id ?? '');
-      if (!list.length) setError('這把金鑰查不到可用的 Gemini 模型');
+      setManualModel(!list.length);
+      if (list.length && !list.some((m) => m.id === modelDraft)) setModelDraft((list.find((m) => /flash/i.test(m.id)) ?? list[0]).id);
+      if (!list.length) setError('Google 沒有回傳可用的模型清單，請在下方直接輸入模型名稱（可在 Google AI Studio 查到）');
     } catch (e) {
       setModels([]);
       setError(e instanceof AiExplainError ? e.message : '查詢模型失敗');
@@ -254,6 +257,18 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
                   {checking ? '查詢中…' : models.length ? '重新查詢' : '用金鑰查詢可用模型'}
                 </button>
               </div>
+              {manualModel ? (
+                <input
+                  id="ai-model"
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={modelDraft}
+                  onChange={(e) => setModelDraft(e.target.value.trim().replace(/^models\//, ''))}
+                  placeholder="輸入模型名稱，例如 AI Studio 上顯示的 gemini-…"
+                  className="mt-2 w-full h-11 rounded-full bg-card px-5 text-[15px] text-label placeholder:text-label3 outline-none focus:ring-2 focus:ring-accent"
+                />
+              ) : (
               <select
                 id="ai-model"
                 value={modelDraft}
@@ -264,6 +279,7 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
                 {!models.length && <option value={modelDraft}>{modelDraft || '先查詢可用模型'}</option>}
                 {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
+              )}
               <p className="mt-1 text-[12px] text-label3">名稱有 Flash 的較快、較便宜；Pro 較仔細。各模型的價格請看 Google 的說明。</p>
           </div>
 
