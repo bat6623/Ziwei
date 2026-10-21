@@ -1,7 +1,7 @@
 {
   "name": "ziwei",
   "private": true,
-  "version": "1.0.11",
+  "version": "1.0.12",
   "type": "module",
   "homepage": "https://bat6623.github.io/Ziwei/",
   "scripts": {
@@ -14,7 +14,6 @@
     "bump": "npm version patch --no-git-tag-version"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.137.0",
     "html2canvas-pro": "^2.4.5",
     "iztro": "^2.6.1",
     "lucide-react": "^1.47.0",

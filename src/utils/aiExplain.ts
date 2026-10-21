@@ -1,33 +1,28 @@
-// Claude SDK 只有選 Claude 時才下載，平常不拖慢網頁
-type AnthropicModule = typeof import('@anthropic-ai/sdk');
 import type { ChartTabMode, EarthlyBranch, Mutagen, PalaceData, Star, ZiweiChartData } from '../types/ziwei';
 import { FOUR_MUTAGENS_MAP } from './ziweiEngine';
 
 // AI 設定：使用者自己的金鑰，只存在這台裝置；網站程式碼裡沒有任何金鑰
-export type AiProvider = 'claude' | 'gemini';
-
 export interface AiSettings {
-  provider: AiProvider;
-  claudeKey: string;
   geminiKey: string;
   /** Gemini 的模型名稱，從使用者金鑰查到的清單裡選 */
   geminiModel: string;
 }
 
 const SETTINGS_KEY = 'ziwei_ai_settings';
-const EMPTY: AiSettings = { provider: 'gemini', claudeKey: '', geminiKey: '', geminiModel: '' };
+const EMPTY: AiSettings = { geminiKey: '', geminiModel: '' };
 
 export function loadAiSettings(): AiSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return EMPTY;
-    const s = JSON.parse(raw) as Partial<AiSettings>;
-    return {
-      provider: s.provider === 'claude' ? 'claude' : 'gemini',
-      claudeKey: typeof s.claudeKey === 'string' ? s.claudeKey : '',
+    const s = JSON.parse(raw) as Partial<AiSettings> & { claudeKey?: unknown; provider?: unknown };
+    const settings: AiSettings = {
       geminiKey: typeof s.geminiKey === 'string' ? s.geminiKey : '',
       geminiModel: typeof s.geminiModel === 'string' ? s.geminiModel : '',
     };
+    // 舊版 (1.0.11) 可能存了 Claude 金鑰；功能已移除，順手從裝置上刪掉
+    if ('claudeKey' in s || 'provider' in s) saveAiSettings(settings);
+    return settings;
   } catch {
     return EMPTY;
   }
@@ -35,7 +30,7 @@ export function loadAiSettings(): AiSettings {
 
 export function saveAiSettings(s: AiSettings): boolean {
   try {
-    if (!s.claudeKey && !s.geminiKey) localStorage.removeItem(SETTINGS_KEY);
+    if (!s.geminiKey) localStorage.removeItem(SETTINGS_KEY);
     else localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
     return true;
   } catch {
@@ -43,9 +38,8 @@ export function saveAiSettings(s: AiSettings): boolean {
   }
 }
 
-/** 目前選的服務能不能用 (有金鑰；Gemini 還要選好模型) */
-export const aiReady = (s: AiSettings) =>
-  s.provider === 'claude' ? !!s.claudeKey : !!s.geminiKey && !!s.geminiModel;
+/** 有金鑰也選好模型才能用 */
+export const aiReady = (s: AiSettings) => !!s.geminiKey && !!s.geminiModel;
 
 const MODE_NAME: Record<ChartTabMode, string> = { feixing: '飛星盤', sanhe: '三合盤', sihua: '四化盤' };
 const ZHI: EarthlyBranch[] = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
@@ -157,7 +151,6 @@ const SYSTEM_PROMPT = `你是紫微斗數老師，替一般人看懂命盤。
 
 建議的段落：一句話總結 → 個性與優勢 → 要留意的地方 → （有選流運時）這段時間的重點。`;
 
-const CLAUDE_MODEL = 'claude-opus-5-5';
 
 export type AiErrorKind = 'auth' | 'permission' | 'rate' | 'network' | 'overloaded' | 'refusal' | 'other';
 
@@ -169,79 +162,10 @@ export class AiExplainError extends Error {
   }
 }
 
-function toAiError(Anthropic: AnthropicModule['default'], e: unknown): AiExplainError {
-  if (e instanceof AiExplainError) return e;
-  if (e instanceof Anthropic.AuthenticationError) return new AiExplainError('auth', '金鑰不正確或已失效，請重新貼上');
-  if (e instanceof Anthropic.PermissionDeniedError) return new AiExplainError('permission', '這把金鑰沒有使用權限，請到 Claude Console 確認');
-  if (e instanceof Anthropic.RateLimitError) return new AiExplainError('rate', '使用太頻繁或額度用完，稍等一下再試，或到 Claude Console 查看額度');
-  if (e instanceof Anthropic.APIConnectionError) return new AiExplainError('network', '連不上 AI 服務，請檢查網路');
-  if (e instanceof Anthropic.InternalServerError) return new AiExplainError('overloaded', 'AI 服務暫時忙碌，請過一會兒再試');
-  if (e instanceof Anthropic.APIError) return new AiExplainError('other', `AI 服務回傳錯誤（${e.status ?? '未知'}）`);
-  return new AiExplainError('other', e instanceof Error ? e.message : '發生未知錯誤');
-}
-
 export interface ExplainHandle {
   /** 解說完成 (或失敗) 時結束 */
   done: Promise<void>;
   abort: () => void;
-}
-
-/**
- * 串流解說：每收到一段文字就呼叫 onText(目前全文)
- * 金鑰只在瀏覽器直接送到 Anthropic，不經過任何其他伺服器
- */
-function explainWithClaude(
-  apiKey: string,
-  context: string,
-  question: string,
-  onText: (fullText: string) => void,
-): ExplainHandle {
-  let aborted = false;
-  let abortStream: (() => void) | null = null;
-
-  const done = (async () => {
-    let Anthropic: AnthropicModule['default'];
-    try {
-      Anthropic = (await import('@anthropic-ai/sdk')).default;
-    } catch {
-      throw new AiExplainError('network', '載入失敗，請檢查網路後再試');
-    }
-    if (aborted) return;
-    const client = new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
-    const stream = client.beta.messages.stream({
-      model: CLAUDE_MODEL,
-      max_tokens: 8000,
-      output_config: { effort: 'medium' },
-      // 安全審查誤擋時，伺服器自動改用建議的備援模型重跑
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: `${question}\n\n<命盤資料>\n${context}\n</命盤資料>` }],
-    });
-    abortStream = () => stream.abort();
-
-    let text = '';
-    stream.on('text', (delta) => {
-      text += delta;
-      onText(text);
-    });
-
-    try {
-      const msg = await stream.finalMessage();
-      if (msg.stop_reason === 'refusal') throw new AiExplainError('refusal', 'AI 這次沒有回答，請換個宮位或流運再試一次');
-    } catch (e) {
-      if (e instanceof Anthropic.APIUserAbortError) return; // 使用者按了停止
-      throw toAiError(Anthropic, e);
-    }
-  })();
-
-  return {
-    done,
-    abort: () => {
-      aborted = true;
-      abortStream?.();
-    },
-  };
 }
 
 // ---------- Gemini (REST，直接從瀏覽器呼叫 Google 的 Generative Language API) ----------
@@ -352,14 +276,15 @@ function explainWithGemini(
   return { done, abort: () => controller.abort() };
 }
 
-/** 依設定選用 Claude 或 Gemini 解說 */
+/**
+ * 串流解說：每收到一段文字就呼叫 onText(目前全文)
+ * 金鑰只在瀏覽器直接送到 Google，不經過任何其他伺服器
+ */
 export function explainChart(
   settings: AiSettings,
   context: string,
   question: string,
   onText: (fullText: string) => void,
 ): ExplainHandle {
-  return settings.provider === 'claude'
-    ? explainWithClaude(settings.claudeKey, context, question, onText)
-    : explainWithGemini(settings.geminiKey, settings.geminiModel, context, question, onText);
+  return explainWithGemini(settings.geminiKey, settings.geminiModel, context, question, onText);
 }

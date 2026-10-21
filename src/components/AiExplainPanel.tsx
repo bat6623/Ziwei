@@ -10,7 +10,6 @@ import {
   listGeminiModels,
   loadAiSettings,
   saveAiSettings,
-  type AiProvider,
   type AiSettings,
   type ExplainHandle,
   type GeminiModel,
@@ -72,7 +71,6 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
   const [settings, setSettings] = useState<AiSettings>(loadAiSettings);
   const [editingKey, setEditingKey] = useState(false);
   // 設定表單的暫存值
-  const [draftProvider, setDraftProvider] = useState<AiProvider>(settings.provider);
   const [keyDraft, setKeyDraft] = useState('');
   const [models, setModels] = useState<GeminiModel[]>([]);
   const [modelDraft, setModelDraft] = useState(settings.geminiModel);
@@ -129,17 +127,15 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
   };
 
   const openSettings = () => {
-    setDraftProvider(settings.provider);
     setKeyDraft('');
     setModelDraft(settings.geminiModel);
     setEditingKey(true);
   };
 
   // 已存的金鑰 (表單沒填新的就沿用)
-  const savedKeyFor = (p: AiProvider) => (p === 'claude' ? settings.claudeKey : settings.geminiKey);
-  const effectiveKey = keyDraft.trim() || savedKeyFor(draftProvider);
+  const effectiveKey = keyDraft.trim() || settings.geminiKey;
 
-  // Gemini：用金鑰查模型清單，預設選第一個名稱有 flash 的 (通常較快較便宜)
+  // 用金鑰查模型清單，預設選第一個名稱有 flash 的 (通常較快較便宜)
   const checkGemini = async () => {
     if (!effectiveKey) return;
     setChecking(true);
@@ -157,27 +153,21 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
     }
   };
 
-  const canSave = draftProvider === 'claude' ? !!effectiveKey : !!effectiveKey && !!modelDraft;
+  const canSave = !!effectiveKey && !!modelDraft;
 
   const saveKey = () => {
     if (!canSave) return;
-    const next: AiSettings = draftProvider === 'claude'
-      ? { ...settings, provider: 'claude', claudeKey: effectiveKey }
-      : { ...settings, provider: 'gemini', geminiKey: effectiveKey, geminiModel: modelDraft };
-    commit(next);
+    commit({ geminiKey: effectiveKey, geminiModel: modelDraft });
     setKeyDraft('');
     setEditingKey(false);
   };
 
   const removeKey = () => {
-    const next: AiSettings = draftProvider === 'claude'
-      ? { ...settings, claudeKey: '' }
-      : { ...settings, geminiKey: '', geminiModel: '' };
-    commit(next);
+    commit({ geminiKey: '', geminiModel: '' });
     setModels([]);
     setModelDraft('');
     setKeyDraft('');
-    if (!aiReady(next)) setEditingKey(true);
+    setEditingKey(true);
   };
 
   const pill = 'h-11 px-5 rounded-full text-[15px] transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
@@ -185,9 +175,7 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
   const outline = `${pill} border border-separator text-label enabled:hover:bg-fill enabled:active:bg-fill2`;
 
   const showKeyForm = !ready || editingKey;
-  const providerName = settings.provider === 'claude' ? 'Claude' : `Gemini（${settings.geminiModel}）`;
-  const seg = (on: boolean) =>
-    `flex-1 h-10 rounded-full text-[15px] transition-colors cursor-pointer ${on ? 'bg-panel text-white dark:bg-accent dark:text-on-accent' : 'text-label2 hover:text-label'}`;
+  const providerName = `Gemini（${settings.geminiModel}）`;
 
   return (
     <section id="ai-explain" aria-label="AI 解說" className="w-full max-w-5xl rounded-[28px] bg-card p-4 sm:p-5 font-apple">
@@ -231,32 +219,11 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
       {showKeyForm && (
         <div className="mt-4 rounded-[20px] bg-grouped p-4 space-y-3">
           <div>
-            <span className="block mb-1.5 text-[13px] text-label3">使用哪個 AI</span>
-            <div role="radiogroup" aria-label="AI 服務" className="flex p-1 rounded-full bg-card">
-              {(['gemini', 'claude'] as const).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  role="radio"
-                  aria-checked={draftProvider === p}
-                  onClick={() => { setDraftProvider(p); setKeyDraft(''); setError(''); }}
-                  className={seg(draftProvider === p)}
-                >
-                  {p === 'gemini' ? 'Gemini' : 'Claude'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
             <label htmlFor="ai-key" className="block text-[15px] text-label">
-              {draftProvider === 'gemini' ? '貼上你的 Gemini API 金鑰' : '貼上你的 Claude API 金鑰'}
+              貼上你的 Gemini API 金鑰
             </label>
             <p className="mt-1 text-[13px] text-label3 leading-relaxed">
-              {draftProvider === 'gemini'
-                ? '到 Google AI Studio（aistudio.google.com）建立金鑰。'
-                : '到 Claude Console（console.anthropic.com）建立金鑰，解說一次大約台幣 1～2 元。'}
-              金鑰只存在這台裝置，直接送到{draftProvider === 'gemini' ? ' Google' : ' Anthropic'}，不會經過其他伺服器，費用由你的帳號支付。共用電腦請不要存。
+              到 Google AI Studio（aistudio.google.com）建立金鑰。金鑰只存在這台裝置，直接送到 Google，不會經過其他伺服器，費用由你的帳號支付。共用電腦請不要存。
             </p>
             <input
               id="ai-key"
@@ -267,16 +234,15 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
               onChange={(e) => { setKeyDraft(e.target.value); setModels([]); }}
               onKeyDown={(e) => {
                 if (e.key !== 'Enter') return;
-                if (draftProvider === 'gemini' && !models.length) void checkGemini();
+                if (!models.length) void checkGemini();
                 else saveKey();
               }}
-              placeholder={savedKeyFor(draftProvider) ? '已存金鑰（要換再貼新的）' : draftProvider === 'gemini' ? 'AIza…' : 'sk-ant-…'}
+              placeholder={settings.geminiKey ? '已存金鑰（要換再貼新的）' : 'AIza…'}
               className="mt-2 w-full h-11 rounded-full bg-card px-5 text-[15px] text-label placeholder:text-label3 outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
 
-          {draftProvider === 'gemini' && (
-            <div>
+          <div>
               <div className="flex items-center gap-2">
                 <label htmlFor="ai-model" className="flex-1 text-[15px] text-label">模型</label>
                 <button
@@ -299,8 +265,7 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
                 {models.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
               </select>
               <p className="mt-1 text-[12px] text-label3">名稱有 Flash 的較快、較便宜；Pro 較仔細。各模型的價格請看 Google 的說明。</p>
-            </div>
-          )}
+          </div>
 
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={saveKey} disabled={!canSave} className={`flex-1 sm:flex-none ${primary}`}>存在這台裝置</button>
@@ -308,9 +273,9 @@ export const AiExplainPanel: React.FC<AiExplainPanelProps> = ({ chart, mode, sel
               <button type="button" onClick={() => { setEditingKey(false); setKeyDraft(''); setError(''); }} className={`flex-1 sm:flex-none ${outline}`}>取消</button>
             )}
           </div>
-          {savedKeyFor(draftProvider) && (
+          {settings.geminiKey && (
             <button type="button" onClick={removeKey} className="h-9 px-4 rounded-full text-[13px] text-danger hover:bg-danger/10 active:bg-danger/20 flex items-center gap-1.5 cursor-pointer">
-              <Trash2 className="w-3.5 h-3.5" /> 刪除已存的 {draftProvider === 'gemini' ? 'Gemini' : 'Claude'} 金鑰
+              <Trash2 className="w-3.5 h-3.5" /> 刪除已存的 Gemini 金鑰
             </button>
           )}
         </div>
