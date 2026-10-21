@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { ZiweiChartData, PalaceData, EarthlyBranch, ChartTabMode, Mutagen } from '../types/ziwei';
 import { FOUR_MUTAGENS_MAP } from '../utils/ziweiEngine';
 import { PalaceCard } from './PalaceCard';
@@ -10,6 +10,8 @@ interface ZiweiGridProps {
   mode: ChartTabMode; // 頁面切換模式: 飛星 | 三合 | 四化
   onShift?: (unit: 'day' | 'hour', delta: number) => void;
   onModeChange?: (mode: ChartTabMode) => void;
+  /** 選取的宮位變了就通知 (AI 解說要知道) */
+  onSelectedChange?: (branch: EarthlyBranch | null) => void;
 }
 
 const MODES: { key: ChartTabMode; label: string }[] = [
@@ -88,7 +90,7 @@ function usePalaceRects(ref: React.RefObject<HTMLDivElement | null>) {
 
 interface Line { from: EarthlyBranch; to: EarthlyBranch; color: string; label?: string; arrow?: boolean; solid?: boolean }
 
-export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift, onModeChange }) => {
+export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift, onModeChange, onSelectedChange }) => {
   const mingBranch = (data.palaces.find((p) => p.name === '命宮') || data.palaces[0]).branch;
   const [selectedBranch, setSelectedBranch] = useState<EarthlyBranch | null>(mingBranch);
   const [prevChartId, setPrevChartId] = useState<string>(data.id);
@@ -97,6 +99,7 @@ export const ZiweiGrid: React.FC<ZiweiGridProps> = ({ data, mode, onShift, onMod
     setPrevChartId(data.id);
     setSelectedBranch(mingBranch);
   }
+  useEffect(() => { onSelectedChange?.(selectedBranch); }, [selectedBranch, onSelectedChange]);
   const wrapRef = useRef<HTMLDivElement>(null);
   const rects = usePalaceRects(wrapRef);
 

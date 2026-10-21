@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { calculateZiweiChart, applyFlowSelection, getDefaultDecadeKey } from './utils/ziweiEngine';
-import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection } from './types/ziwei';
+import type { ZiweiChartData, BirthInput, ChartTabMode, FlowSelection, EarthlyBranch } from './types/ziwei';
 import { getBirthInput, type SavedRecord } from './utils/records';
 import { APP_VERSION, BUILD_TIME } from './utils/appVersion';
 import { ZiweiGrid } from './components/ZiweiGrid';
 import { InputModal } from './components/InputModal';
 import { RecentCharts } from './components/RecentCharts';
+import { AiExplainPanel } from './components/AiExplainPanel';
 import { DataStorageManager } from './components/DataStorageManager';
 import { FlowCycleBar } from './components/FlowCycleBar';
 import { BottomControlBar } from './components/BottomControlBar';
@@ -66,6 +67,7 @@ export function App() {
     [tabMode, flowSel, baseChart],
   );
   const chartData = useMemo(() => applyFlowSelection(baseChart, effectiveSel), [baseChart, effectiveSel]);
+  const [selectedBranch, setSelectedBranch] = useState<EarthlyBranch | null>(null);
   const [infoModalTab, setInfoModalTab] = useState<'help' | 'about' | null>(null);
 
   const handleCalculate = (input: BirthInput) => {
@@ -203,13 +205,16 @@ export function App() {
         </section>
 
         <div className="w-full mt-5">
-          <ZiweiGrid data={chartData} mode={tabMode} onShift={handleShift} onModeChange={setTabMode} />
+          <ZiweiGrid data={chartData} mode={tabMode} onShift={handleShift} onModeChange={setTabMode} onSelectedChange={setSelectedBranch} />
         </div>
 
         {/* 流運選單 */}
         <div className="w-full max-w-5xl">
           <FlowCycleBar data={baseChart} mode={tabMode} selection={effectiveSel} onChange={setFlowSel} />
         </div>
+
+        {/* AI 解說目前畫面 */}
+        <AiExplainPanel chart={chartData} mode={tabMode} selectedBranch={selectedBranch} />
 
         {/* 儲存與 iCloud 備份 */}
         <DataStorageManager currentChart={baseChart} modeLabel={{ feixing: '飛星盤', sanhe: '三合盤', sihua: '四化盤' }[tabMode]} onLoadRecord={handleLoadRecord} />
@@ -229,6 +234,7 @@ export function App() {
         onLoadDemo={handleLoadDemo}
         onOpenInfo={setInfoModalTab}
         onForceUpdate={forceUpdate}
+        onOpenAi={() => document.getElementById('ai-explain')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         themePref={theme.pref}
         onThemeChange={theme.setPref}
       />
